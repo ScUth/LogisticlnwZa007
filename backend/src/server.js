@@ -15,23 +15,43 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+const RETRY_MS = 30000;
+let db_status = false;
+
 // basic test route
 app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
+    res.send({ backend: true, database: db_status });
 });
 
 // connect DB + start
 const PORT = process.env.PORT || 4826;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/dbproject";
 
-mongoose.connect(MONGO_URI)
-    .then(() => {
-        console.log("Mongo connected");
-        app.listen(PORT, () => {
-        console.log("API running on port", PORT);
-        });
-    })
-    .catch(err => {
-        console.error("DB connection error:", err);
-        process.exit(1);
-    });
+mongoose.connection.on("connected", () => {
+    console.log("MongoDB connected")
+    db_status = true;
+})
+
+mongoose.connection.on("disconnected", () => {
+    console.warn("MongoDB disconnected");
+    db_status = false;
+    setTimeout(connectWithRetry, RETRY_MS);
+})
+
+mongoose.connection.on("error", (err) => {
+    console.error("MongoDB error:", err.message);
+})
+
+
+const connectWithRetry = async () => {
+    console.log("Connecting to MongoDB...");
+    try {
+        await mongoose.connect(MONGO_URI);
+    } catch (err) {
+        console.error(`Mongo connect failed. Retrying in ${RETRY_MS / 1000}s...`, err.message);
+        setTimeout(connectWithRetry, RETRY_MS);
+    }
+};
+
+app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+connectWithRetry();

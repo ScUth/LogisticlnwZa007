@@ -1,0 +1,21 @@
+# ---------- Dev image for Next.js frontend ----------
+FROM node:20-alpine
+
+# Set working dir inside container
+WORKDIR /app
+
+# Copy only dependency manifests first (cache layer)
+COPY package*.json ./
+
+# Install all dependencies (including dev deps)
+ENV NODE_ENV=development
+RUN npm install
+
+# Copy the rest of the source code
+COPY . .
+
+# Expose dev port
+EXPOSE 4060
+
+# Default command: Next.js dev server on port 5173
+CMD ["npm", "run", "dev", "--", "-p", "4060"]
