@@ -1,0 +1,55 @@
+services:
+  mongo:
+    image: mongo
+    container_name: db-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: dbproject
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev # your backend Dockerfile (dev or prod)
+    container_name: db-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 4826
+      MONGO_URI: mongodb://mongo:27017/dbproject
+      RESET_SEEDED_DATA: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "4826:4826"
+    depends_on:
+      - mongo
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/package.json:/app/package.json
+      - ./backend/package-lock.json:/app/package-lock.json
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: db-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:4826"
+      # Next.js dev server will read PORT from the command below, but we can also pass one for clarity
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      PORT: 4060
+    ports:
+      - "4060:4060"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  mongo_data:

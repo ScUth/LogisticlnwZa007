@@ -1,0 +1,27 @@
+# ============= Dev Imaage ================
+
+# 1. Use an official Node.js image as the base environment
+FROM node:20-alpine
+
+# 2. Set the working directory inside the container
+WORKDIR /app
+
+# 3. Copy only package.json and package-lock.json first
+COPY package*.json ./
+
+# 4. Install dependencies inside the container
+ENV NODE_ENV=development
+RUN npm install
+
+# 5. Copy the rest of the backend source code into the container
+COPY . .
+
+# 6. Expose the port your backend listens on
+EXPOSE 4826
+
+# 7. Define environment variables (optional defaults)
+# ENV NODE_ENV=production
+
+# 8. Start the server
+# CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]
