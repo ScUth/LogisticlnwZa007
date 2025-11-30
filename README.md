@@ -35,20 +35,113 @@
 .
 ├─ backend/
 │  ├─ src/
-│  │  └─ server.js         # Express + Mongoose + WS
+│  │  ├─ server.js                 # App entry
+│  │  ├─ config/
+│  │  │  ├─ db.js                  # DB connection (Mongo/Postgres/etc)
+│  │  │  ├─ env.js                 # env loader
+│  │  │  └─ logger.js
+│  │  ├─ middleware/
+│  │  │  ├─ auth.js                # JWT + role guard
+│  │  │  ├─ errorHandler.js
+│  │  ├─ models/                   # DB schemas (sender, parcel, etc)
+│  │  │  ├─ Hub.js
+│  │  │  ├─ Sender.js
+│  │  │  ├─ Recipient.js
+│  │  │  ├─ Parcel.js
+│  │  │  ├─ Driver.js
+│  │  │  ├─ Route.js
+│  │  │  ├─ ParcelScanEvent.js
+│  │  │  └─ ProofOfDelivery.js
+│  │  ├─ controllers/              # Business logic 
+│  │  │  ├─ authController.js
+│  │  │  ├─ parcelController.js
+│  │  │  ├─ routeController.js
+│  │  │  ├─ driverController.js
+│  │  │  ├─ hubController.js
+│  │  │  └─ scanController.js
+│  │  ├─ routes/                   # REST endpoints
+│  │  │  ├─ authRoutes.js
+│  │  │  ├─ parcelRoutes.js
+│  │  │  ├─ routeRoutes.js
+│  │  │  ├─ driverRoutes.js
+│  │  │  ├─ hubRoutes.js
+│  │  │  ├─ scanRoutes.js
+│  │  │  └─ podRoutes.js
+│  │  ├─ services/                 # Business modules (optional)
+│  │  │  ├─ parcelService.js
+│  │  │  ├─ routeService.js
+│  │  │  └─ notificationService.js
+│  │  └─ utils/
+│  │     ├─ jwt.js
+│  │     ├─ validators.js
+│  │     └─ time.js
 │  ├─ package.json
-│  ├─ Dockerfile.dev       # Dev image for backend (nodemon)
+│  ├─ Dockerfile.dev
 │
 ├─ frontend/
 │  ├─ app/
 │  │  ├─ layout.jsx
-│  │  ├─ page.jsx
-│  │  └─ globals.css
+│  │  ├─ globals.css
+│  │  │
+│  │  ├─ (public)/                # ❗ Unprotected routes
+│  │  │  ├─ page.jsx              # Home
+│  │  │  ├─ track/
+│  │  │  │  └─ page.jsx           # Track shipment
+│  │  │  ├─ create-shipment/
+│  │  │  │  └─ page.jsx
+│  │  │  └─ contact/
+│  │  │     └─ page.jsx
+│  │  │
+│  │  ├─ (auth)/                  # Login page
+│  │  │  └─ login/
+│  │  │     └─ page.jsx
+│  │  │
+│  │  ├─ (admin)/                 # 🟩 PROTECTED Admin Dashboard
+│  │  │  ├─ layout.jsx            # Contains AdminSidebar, auth guard
+│  │  │  ├─ dashboard/
+│  │  │  │  └─ page.jsx
+│  │  │  ├─ parcels/
+│  │  │  │  ├─ page.jsx           # list
+│  │  │  │  ├─ create/
+│  │  │  │  │  └─ page.jsx
+│  │  │  │  └─ [id]/
+│  │  │  │     └─ page.jsx
+│  │  │  ├─ routes/
+│  │  │  ├─ drivers/
+│  │  │  ├─ hubs/
+│  │  │  ├─ scans/
+│  │  │  └─ pod/
+│  │  │
+│  │  ├─ (driver)/                # 🟦 PROTECTED DRIVER ROUTES
+│  │  │  ├─ layout.jsx            # DriverLayout + auth guard
+│  │  │  ├─ page.jsx              # Driver dashboard
+│  │  │  ├─ route/
+│  │  │  │  └─ page.jsx
+│  │  │  ├─ parcels/
+│  │  │  │  └─ page.jsx
+│  │  │  └─ parcel/
+│  │  │     └─ [id]/
+│  │  │        └─ page.jsx        # Scan + POD
+│  │  │
+│  │  ├─ components/
+│  │  │  ├─ Protected.jsx         # Role-based guard
+│  │  │  ├─ PublicNav.jsx
+│  │  │  ├─ AdminSidebar.jsx
+│  │  │  ├─ DriverHeader.jsx
+│  │  │  └─ ui/...
+│  │
+│  ├─ lib/
+│  │  ├─ api.js                   # fetch wrappers
+│  │  ├─ auth.js                  # getToken, verifyRole
+│  │  └─ helpers.js
+│  │
+│  ├─ utils/
+│  ├─ Dockerfile.dev
 │  ├─ package.json
-│  ├─ Dockerfile.dev       # Dev image for frontend (next dev)
 │
 ├─ docker-compose.yml
 └─ README.md
+
 ```
 
 ## Quick Start (Development Mode)
