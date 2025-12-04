@@ -47,22 +47,16 @@
 │       │   ├── authController.js
 │       │   ├── driverController.js
 │       │   ├── hubController.js
+│       │   ├── locationController.js
 │       │   ├── parcelController.js
 │       │   └── scanController.js
 │       ├── middleware
 │       │   ├── auth.js
 │       │   └── errorHandler.js
 │       ├── models
-│       │   ├── courier.js
-│       │   ├── hub.js
-│       │   ├── parcel.js
-│       │   ├── parcel_route_assignment.js
-│       │   ├── parcel_scan_event.js
-│       │   ├── proof_of_delivery.js
-│       │   ├── recipient.js
-│       │   ├── route.js
-│       │   ├── sender.js
-│       │   └── zone.js
+│       │   ├── location.js
+│       │   ├── operations.js
+│       │   └── people.js
 │       ├── routes
 │       │   ├── authRoutes.js
 │       │   ├── driverRoutes.js
@@ -81,59 +75,75 @@
 │           ├── time.js
 │           └── validators.js
 ├── docker-compose.yml
-└── frontend
-    ├── Dockerfile.dev
-    ├── app
-    │   ├── (admin)
-    │   │   ├── dashboard
-    │   │   ├── drivers
-    │   │   ├── hubs
-    │   │   ├── layout.jsx
-    │   │   ├── parcels
-    │   │   │   ├── [id]
-    │   │   │   │   └── page.jsx
-    │   │   │   ├── create
-    │   │   │   │   └── page.jsx
-    │   │   │   └── page.jsx
-    │   │   ├── pod
-    │   │   ├── routes
-    │   │   └── scans
-    │   ├── (auth)
-    │   │   └── login
-    │   │       └── page.jsx
-    │   ├── (driver)
-    │   │   ├── layout.jsx
-    │   │   ├── page.jsx
-    │   │   ├── parcel
-    │   │   │   └── [id]
-    │   │   │       └── page.jsx
-    │   │   ├── parcels
-    │   │   │   └── page.jsx
-    │   │   └── route
-    │   │       └── page.jsx
-    │   ├── (public)
-    │   │   ├── page.jsx
-    │   │   └── track
-    │   ├── components
-    │   │   ├── AdminSidebar.jsx
-    │   │   ├── DriverHeader.jsx
-    │   │   ├── Protected.jsx
-    │   │   ├── PublicNav.jsx
-    │   │   └── ui
-    │   ├── globals.css
-    │   ├── layout.jsx
-    │   └── page.jsx
-    ├── lib
-    │   ├── api.js
-    │   ├── auth.js
-    │   └── helpers.js
-    ├── package-lock.json
-    ├── package.json
-    ├── postcss.config.js
-    ├── tailwind.config.js
-    └── utils
+├── frontend
+│   ├── Dockerfile.dev
+│   ├── app
+│   │   ├── (admin)
+│   │   │   ├── dashboard
+│   │   │   ├── drivers
+│   │   │   ├── hubs
+│   │   │   ├── layout.jsx
+│   │   │   ├── parcels
+│   │   │   │   ├── [id]
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── create
+│   │   │   │   │   └── page.jsx
+│   │   │   │   └── page.jsx
+│   │   │   ├── pod
+│   │   │   ├── routes
+│   │   │   └── scans
+│   │   ├── (auth)
+│   │   │   ├── login
+│   │   │   │   └── page.jsx
+│   │   │   └── shipment
+│   │   │       └── page.jsx
+│   │   ├── (courier)
+│   │   │   ├── dashboard
+│   │   │   │   └── page.jsx
+│   │   │   ├── layout.jsx
+│   │   │   ├── parcel
+│   │   │   │   └── [id]
+│   │   │   │       └── page.jsx
+│   │   │   ├── parcels
+│   │   │   │   └── page.jsx
+│   │   │   └── route
+│   │   │       └── page.jsx
+│   │   ├── (public)
+│   │   │   ├── aboutus
+│   │   │   │   └── page.jsx
+│   │   │   ├── contact
+│   │   │   │   └── page.jsx
+│   │   │   ├── page.jsx
+│   │   │   └── track
+│   │   │       └── page.jsx
+│   │   ├── components
+│   │   │   ├── AdminSidebar.jsx
+│   │   │   ├── DriverHeader.jsx
+│   │   │   ├── PublicNav.jsx
+│   │   │   ├── img
+│   │   │   │   ├── contactus.jpg
+│   │   │   │   ├── logo.png
+│   │   │   │   ├── transport.jpg
+│   │   │   │   ├── transport_1.jpg
+│   │   │   │   └── whitelogo.png
+│   │   │   ├── navbar.jsx
+│   │   │   └── ui
+│   │   ├── globals.css
+│   │   └── layout.jsx
+│   ├── components.json
+│   ├── lib
+│   │   ├── api.js
+│   │   ├── auth.js
+│   │   └── helpers.js
+│   ├── middleware.js
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── tailwind.config.js
+│   └── utils
+└── package-lock.json
 
-35 directories, 65 files
+40 directories, 70 files
 ```
 
 ## Quick Start (Development Mode)
