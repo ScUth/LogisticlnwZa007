@@ -2,7 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* you can add custom classes below if needed */
-body {
-  @apply bg-gray-900 text-gray-100;
+@layer base {
+  :root {
+    --background: oklch(96.7% 0.003 264.542);
+    --foreground: oklch(27.8% 0.033 256.848);
+  }
+
+  body {
+    @apply bg-[var(--background)] text-[var(--foreground)];
+  }
 }

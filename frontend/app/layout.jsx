@@ -1,14 +1,16 @@
 import "./globals.css";
+import { Manrope } from "next/font/google";
 
 export const metadata = {
   title: "DB Project Dashboard",
   description: "MERN DB demo app"
 };
 
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-gray-900 text-gray-100">
+      <body className="bg-background text-foreground">
         {children}
       </body>
     </html>

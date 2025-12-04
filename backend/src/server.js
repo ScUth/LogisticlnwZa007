@@ -3,13 +3,14 @@ import mongoose from "mongoose";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
+import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 
 const app = express();
 
 app.use(cors({
-    origin: "http://localhost:4060",
+    origin: "http://192.168.1.90:4060",
     credentials: true
 }));
 app.use(express.json());
@@ -22,6 +23,9 @@ let db_status = false;
 app.get("/api/health", (req, res) => {
     res.send({ backend: true, database: db_status });
 });
+
+// Auth routes
+app.use("/api/auth", authRoutes);
 
 // connect DB + start
 const PORT = process.env.PORT || 4826;
