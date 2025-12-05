@@ -1,6 +1,6 @@
 "use client"
 
-import logo from "../components/img/whitelogo.png"
+import logo from "./img/whitelogo.png"
 import Image from "next/image"
 
 export function NavigationBar() {
@@ -9,7 +9,7 @@ export function NavigationBar() {
         <nav className="bg-amber-600 sticky w-full z-20 top-0 start-0 border-b border-default">
             <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-3">
                 <a href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
-                    <Image src={logo} className="flex w-auto h-9"/>
+                    <Image src={logo} alt="Logo" className="flex w-auto h-9"/>
                 </a>
                 <button data-collapse-toggle="navbar-default" type="button" className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-body rounded-base md:hidden hover:bg-neutral-secondary-soft hover:text-heading focus:outline-none focus:ring-2 focus:ring-neutral-tertiary" aria-controls="navbar-default" aria-expanded="false">
                     <span className="sr-only">Open main menu</span>

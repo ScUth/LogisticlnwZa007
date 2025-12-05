@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { NavigationBar } from "../../components/navbar";
+import { NavigationBar } from "../../../components/navbar";
 
 export default function ShipmentPage() {
 	const [formData, setFormData] = useState({

@@ -1,8 +1,8 @@
 "use client"
 import { ExternalLink } from "lucide-react";
 import Image from "next/image";
-import { NavigationBar } from "../../components/navbar";
-import TransportPicture from "../../components/img/transport.jpg";
+import { NavigationBar } from "@/components/navbar";
+import TransportPicture from "@/components/img/transport.jpg";
 
 export default function aboutUS() {
     return (

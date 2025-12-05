@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Manrope } from "next/font/google";
+import { AuthProvider } from "@/contexts/authContext";
 
 export const metadata = {
   title: "DB Project Dashboard",
@@ -11,7 +11,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="bg-background text-foreground">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

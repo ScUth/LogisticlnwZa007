@@ -1,7 +1,7 @@
 "use client"
 
-import { NavigationBar } from "../../components/navbar"
-import ContactIMG from "../../components/img/contactus.jpg"
+import { NavigationBar } from "@/components/navbar"
+import ContactIMG from "@/components/img/contactus.jpg"
 import Image from "next/image"
 
 export default function ContactUS() {
@@ -10,7 +10,7 @@ export default function ContactUS() {
             <NavigationBar/>
             <div className="w-full">
                 <div className="relative">
-                    <Image src={ContactIMG} className="w-screen max-h-[500px] object-cover brightness-50"/>
+                    <Image src={ContactIMG} alt="ContactIMG" className="w-screen max-h-[500px] object-cover brightness-50"/>
                     <div className="w-screen absolute text-center mt-20 top-20">
                         <h1 className="text-5xl font-bold text-white">
                             Contact Us

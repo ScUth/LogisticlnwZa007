@@ -1,12 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import axios from "axios";
-import { NavigationBar } from "../components/navbar";
-import TransportPicture from "../components/img/transport.jpg";
+import { NavigationBar } from "@/components/navbar";
+import TransportPicture from "@/components/img/transport.jpg";
 import { Package } from "lucide-react";
 import Image from "next/image";
+import { useAuth } from "@/contexts/authContext"; 
 
 export default function HomePage() {
+  const router = useRouter();
+
+  const { user } = useAuth();
+
   const [backendStatus, setBackendStatus] = useState(false);
   const [dbStatus, setDbStatus] = useState(false);
 
@@ -26,6 +32,14 @@ export default function HomePage() {
     fetchData();
   }, [backendStatus, dbStatus]);
 
+  const handleShipmentClick = () => {
+    if (!user) {
+      router.push("/login?redirect=/shipment");
+    } else {
+      router.push("/shipment");
+    }
+  }
+
   return (
     <main>
       <NavigationBar />
@@ -34,6 +48,7 @@ export default function HomePage() {
           <div className="w-1/3 flex items-center justify-center">
             <Image
               src={TransportPicture}
+              alt="Transportation Picture"
               className="flex h-auto max-w-80 rounded-lg"
             />
           </div>
@@ -52,10 +67,13 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        <a href="/shipment" className="flex flex-row p-6 px-10 h-[120px] items-center gap-2 font-bold border-2 border-red-700 text-red-700 rounded-lg hover:bg-amber-600 hover:border-amber-600 hover:text-gray-100 transition">
+        <div
+          onClick={handleShipmentClick}
+          className="flex flex-row p-6 px-10 h-[120px] items-center gap-2 font-bold border-2 border-red-700 text-red-700 rounded-lg hover:bg-amber-600 hover:border-amber-600 hover:text-gray-100 transition"
+        >
           <Package className="size-[50px]" />
           <span className="text-[22px]">Create Shipment</span>
-        </a>
+        </div >
       </div>
     </main>
   );

@@ -4,13 +4,14 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
+import locationRoutes from "./routes/locationRoutes.js";
 
 dotenv.config();
 
 const app = express();
 
 app.use(cors({
-    origin: "http://192.168.1.90:4060",
+    origin: process.env.FRONTEND_URL || "http://192.168.1.90:4060",
     credentials: true
 }));
 app.use(express.json());
@@ -26,6 +27,9 @@ app.get("/api/health", (req, res) => {
 
 // Auth routes
 app.use("/api/auth", authRoutes);
+
+// Location routes
+app.use("/api/locations", locationRoutes);
 
 // connect DB + start
 const PORT = process.env.PORT || 4826;

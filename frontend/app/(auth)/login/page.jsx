@@ -1,12 +1,20 @@
 "use client"
 
-import { NavigationBar } from "../../components/navbar"
-import TransportationPicture from "../../components/img/transport_1.jpg"
+import { NavigationBar } from "@/components/navbar"
+import TransportationPicture from "@/components/img/transport_1.jpg"
 import Image from "next/image"
 import React, { use } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useAuth } from "@/contexts/authContext"
 
 export default function Login() {
-    const [isLogin, setIsLogin] = React.useState(false);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirect = searchParams.get("redirect") || "/";
+
+    const { login, user, register, logout } = useAuth();
+
+    const [isLogin, setIsLogin] = React.useState(true);
     const [first_name, setName] = React.useState("");
     const [email, setEmail] = React.useState("");
     const [password, setPassword] = React.useState("");
@@ -36,47 +44,23 @@ export default function Login() {
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         if (!validateRegister()) return;
-
-        try {
-            const response = await fetch("http://localhost:4826/api/auth/register", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                credentials: "include",
-                body: JSON.stringify({
-                    first_name,
-                    last_name,
-                    phone,
-                    password,
-                    password_confirmation
-                }),
-            });
-
-            if (response.ok) {
-                setIsLogin(true);
-            }
-        } catch (error) {
-            console.error("Registration failed:", error);
+        const success = await register(first_name, last_name, phone, password, password_confirmation);
+        if (!success) {
+            setErrors({ register: "Registration failed" });
+        } else {
+            // redirect to dashboard or home page
+            router.push(redirect);
         }
     };
 
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
-        
-        try {
-            const response = await fetch("http://localhost:4826/api/auth/login", {
-                method: "POST",
-                headers: {"Content-Type": "application/json",},
-                credentials: "include",
-                body: JSON.stringify({ phone: phoneLogin, password: passwordLogin }),
-            });
-
-            if (response.ok) {
-                console.log("Login successful");
-            }
-        } catch (error) {
-            console.error("Login failed:", error);
+        const success = await login(phoneLogin, passwordLogin);
+        if (!success) {
+            setErrors({ login: "Invalid phone or password" });
+        } else {
+            // redirect to dashboard or home page
+            router.push(redirect);
         }
     };
 
@@ -86,7 +70,10 @@ export default function Login() {
             <div className="flex flex-col">
                 <div className="flex w-full">
                     <div className="w-1/2 flex items-center justify-center h-screen">
-                        <Image src={TransportationPicture} className="w-[60%] rounded-lg" />
+                        <Image src={TransportationPicture} 
+                        alt="Transportation Picture"
+                        className="w-[60%] rounded-lg" 
+                    />
                     </div>
 
                     <div className="w-[1px] bg-gray-300 self-stretch"></div>
