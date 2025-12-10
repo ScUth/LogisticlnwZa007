@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
 
     const fetchCurrentUser = async () => {
         try {
-            const response = await fetch('http://localhost:4826/api/auth/me', {
+            const response = await fetch('http://kumtho.trueddns.com:33862/api/auth/me', {
                 credentials: 'include',
             });
 
@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = async (phone, password) => {
-        const response = await fetch('http://localhost:4826/api/auth/login', {
+        const response = await fetch('http://kumtho.trueddns.com:33862/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
-        await fetch('http://localhost:4826/api/auth/logout', {
+        await fetch('http://kumtho.trueddns.com:33862/api/auth/logout', {
             method: 'POST',
             credentials: 'include',
         });
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const register = async (first_name, last_name, phone, password, password_confirmation) => {
-        const response = await fetch('http://localhost:4826/api/auth/register', {
+        const response = await fetch('http://kumtho.trueddns.com:33862/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',

@@ -5,12 +5,18 @@ const { ObjectId } = mongoose.Schema.Types;
 const LocationSchema = new mongoose.Schema(
   {
     location_name: { type: String, required: true, trim: true },
-    address_text: { type: String },
+    address_text: { type: String, required: true, trim: true },
     region_code: { type: String, maxlength: 20 },
-    sender: { type: Boolean, default: false },
+    sender: { type: String, required: true, trim: true },
     used_for_pickup: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  // createdAt, updatedAt
+  { timestamps: { createdAt: "created_at", updatedAt: "updated_at" } }
+);
+
+LocationSchema.index(
+  { sender: 1, used_for_pickup: 1 },
+  { unique: true, partialFilterExpression: { used_for_pickup: true } }
 );
 
 /*========== HUB ==========*/
@@ -26,6 +32,6 @@ const HubSchema = new mongoose.Schema(
 );
 
 const Hub = mongoose.model("Hub", HubSchema);
-const Location = mongoose.model("Location", ZoneSchema);
+const Location = mongoose.model("Location", LocationSchema);
 
 export { Hub, Location };
