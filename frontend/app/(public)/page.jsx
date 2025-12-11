@@ -8,7 +8,7 @@ import { Package } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/contexts/authContext";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826";
 
 export default function HomePage() {
   const router = useRouter();
