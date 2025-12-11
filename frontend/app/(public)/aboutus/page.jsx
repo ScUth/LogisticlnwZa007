@@ -2,7 +2,7 @@
 import { ExternalLink } from "lucide-react";
 import Image from "next/image";
 import { NavigationBar } from "@/components/navbar";
-import TransportPicture from "@/components/img/transport.jpg";
+import SpongeBobPicture from "@/components/img/Caveman-SpongeBob.jpg";
 
 export default function aboutUS() {
     return (
@@ -57,9 +57,9 @@ export default function aboutUS() {
                     </a>
                 </div>
 
-                <div className="w-1/3 items-center justify-center">
+                <div className="flex w-1/3 items-center">
                     <Image 
-                        src={TransportPicture}
+                        src={SpongeBobPicture}
                         alt="Sample picture"
                         className="max-w-80 rounded-lg"
                     />
