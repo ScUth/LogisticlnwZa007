@@ -14,14 +14,14 @@ export default function ShipmentPage() {
 
 	const {
 		locations,
-    loading,
-    error,
-    locBySenderMessage,
-    fetchLocationsBySenderId,
-    createLocation,
-    updateLocation,
+		loading,
+		error,
+		locBySenderMessage,
+		fetchLocationsBySenderId,
+		createLocation,
+		updateLocation,
 		usedLocation,
-    fetchSenderUsedLocation,
+		fetchSenderUsedLocation,
 	} = useLocation(user?._id);
 
 	const [openCreateLocationDialog, setOpenCreateLocationDialog] = useState(false);
@@ -57,7 +57,7 @@ export default function ShipmentPage() {
 		e.preventDefault();
 		router.push("/shipment/step2");
 	};
-	
+
 	return (
 		<div>
 			<NavigationBar />

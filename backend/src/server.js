@@ -14,7 +14,7 @@ app.use(
   cors({
     origin: [
       process.env.FRONTEND_URL || "http://192.168.1.90:4060",
-      "http://kumtho.trueddns.com:33860",
+      "http://localhost:4060",
       "http://localhost:4060",
     ],
     credentials: true,

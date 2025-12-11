@@ -157,7 +157,7 @@ docker compose up --build
 ```
 3. Open the app in your browser:
 - Frontend UI: http://localhost:4060
-- Backend (API Health): http://kumtho.trueddns.com:33860/api/health
+- Backend (API Health): http://localhost:4060/api/health
 
 To stop everything:
 ```bash
