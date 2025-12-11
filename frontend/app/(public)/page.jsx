@@ -71,7 +71,7 @@ export default function HomePage() {
         </div>
         <div
           onClick={handleShipmentClick}
-          className="flex flex-row p-6 px-10 h-[120px] items-center gap-2 font-bold border-2 border-red-700 text-red-700 rounded-lg hover:bg-amber-600 hover:border-amber-600 hover:text-gray-100 transition"
+          className="flex flex-row p-6 px-10 h-[120px] items-center gap-2 cursor-pointer font-bold border-2 border-red-700 text-red-700 rounded-lg hover:bg-amber-600 hover:border-amber-600 hover:text-gray-100 transition"
         >
           <Package className="size-[50px]" />
           <span className="text-[22px]">Create Shipment</span>
