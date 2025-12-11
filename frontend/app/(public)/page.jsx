@@ -6,7 +6,9 @@ import { NavigationBar } from "@/components/navbar";
 import TransportPicture from "@/components/img/transport.jpg";
 import { Package } from "lucide-react";
 import Image from "next/image";
-import { useAuth } from "@/contexts/authContext"; 
+import { useAuth } from "@/contexts/authContext";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
 
 export default function HomePage() {
   const router = useRouter();
@@ -19,7 +21,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("http://localhost:4826/api/health");
+        const res = await fetch(`${API_BASE_URL}/api/health`);
         if (res.ok) {
           const data = await res.json();
           setBackendStatus(Boolean(data.backend));
