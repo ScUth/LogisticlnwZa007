@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -10,7 +12,7 @@ export const AuthProvider = ({ children }) => {
 
     const fetchCurrentUser = async () => {
         try {
-            const response = await fetch('http://kumtho.trueddns.com:33862/api/auth/me', {
+            const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
                 credentials: 'include',
             });
 
@@ -33,7 +35,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = async (phone, password) => {
-        const response = await fetch('http://kumtho.trueddns.com:33862/api/auth/login', {
+        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -48,7 +50,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
-        await fetch('http://kumtho.trueddns.com:33862/api/auth/logout', {
+        await fetch(`${API_BASE_URL}/api/auth/logout`, {
             method: 'POST',
             credentials: 'include',
         });
@@ -56,7 +58,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const register = async (first_name, last_name, phone, password, password_confirmation) => {
-        const response = await fetch('http://kumtho.trueddns.com:33862/api/auth/register', {
+        const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',

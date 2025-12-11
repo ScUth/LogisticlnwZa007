@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+
 export default function TestPage() {
 
   const [backendStatus, setBackendStatus] = useState(false);
@@ -16,7 +18,7 @@ export default function TestPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await fetch("http://kumtho.trueddns.com:33862/api/health");
+        const res = await fetch(`${API_BASE_URL}/api/health`);
         if (res.ok) {
           const data = await res.json();
           setBackendStatus(Boolean(data.backend));
