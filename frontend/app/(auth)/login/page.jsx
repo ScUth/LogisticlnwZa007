@@ -5,7 +5,7 @@ import TransportationPicture from "@/components/img/transport_1.jpg"
 import Image from "next/image"
 import React, { use } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useAuth } from "@/contexts/authContext"
+import { useAuth } from "@/context/authContext"
 
 export default function Login() {
     const router = useRouter();

@@ -88,8 +88,9 @@ export function useLocation(senderId) {
 
   // post create location
   const createLocation = useCallback(
-    async ({ location_name, address_text, region_code, used_for_pickup }) => {
+    async ({ location_name, address_text, sub_district, used_for_pickup }) => {
       if (!location_name?.trim() || !address_text?.trim() || !senderId) {
+        console.log(location_name, address_text, senderId);
         const err = new Error("Location name, address, and sender are required");
         setError(err.message);
         throw err;
@@ -106,7 +107,7 @@ export function useLocation(senderId) {
           body: JSON.stringify({
             location_name: location_name.trim(),
             address_text: address_text.trim(),
-            region_code: region_code || "",
+            sub_district: sub_district || "",
             sender: senderId, // always trust current user
             used_for_pickup: !!used_for_pickup,
           }),
