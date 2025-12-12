@@ -12,6 +12,17 @@ const SenderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+/*========== DRIVER ==========*/
+const DriverSchema = new mongoose.Schema(
+  {
+    first_name: { type: String, required: true },
+    last_name: { type: String, required: true },
+    phone: { type: String, required : true, unique: true },
+    password: { type: String, required: true, select: false },
+  },
+  { timestamps: true }
+);
+
 /*========== RECIPIENT ==========*/
 const RecipientSchema = new mongoose.Schema(
   {

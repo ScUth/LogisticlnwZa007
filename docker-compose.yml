@@ -38,7 +38,7 @@ services:
     container_name: db-frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: "http://localhost:4060"
+      NEXT_PUBLIC_API_URL: "http://kumtho.trueddns.com:33860"
       # Next.js dev server will read PORT from the command below, but we can also pass one for clarity
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"

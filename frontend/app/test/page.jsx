@@ -18,7 +18,7 @@ export default function TestPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await fetch("http://localhost:4826/api/health");
+        const res = await fetch("http://kumtho.trueddns.com:33862/api/health");
         if (res.ok) {
           const data = await res.json();
           setBackendStatus(Boolean(data.backend));

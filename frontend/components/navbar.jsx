@@ -1,10 +1,12 @@
 "use client"
 
 import logo from "./img/whitelogo.png"
+import { useAuth } from "@/contexts/authContext";
 import Image from "next/image"
 
 export function NavigationBar() {
-
+	const { user } = useAuth();
+    console.log(user);
     return (
         <nav className="bg-amber-600 sticky w-full z-20 top-0 start-0 border-b border-default">
             <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-3">
@@ -35,6 +37,11 @@ export function NavigationBar() {
                             <a href="/contact" className="block py-2 px-3 text-heading rounded hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0 md:dark:hover:bg-transparent">
                                 Contact
                             </a>
+                        </li>
+                        <li>
+                            <button className="" href="/login">
+                                Login
+                            </button>
                         </li>
                     </ul>
                 </div>
