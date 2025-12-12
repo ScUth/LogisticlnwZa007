@@ -1,19 +1,36 @@
-"use client"
+"use client";
 
 import { useState, useEffect, use } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-export function ListPickupLocationDialog({ userId, isOpen, onClose, locations, onSelect, openCreateLocationDialog }) {
-
-  const [selectedLocationId, setSelectedLocationId] = useState(null)
+export function ListPickupLocationDialog({
+  userId,
+  isOpen,
+  onClose,
+  locations,
+  usedLocation,
+  onSelect,
+  openCreateLocationDialog,
+}) {
+  const [selectedLocationId, setSelectedLocationId] = useState(usedLocation?._id || null);
 
   const handleSelectLocation = () => {
-    const location = locations.find(loc => loc._id === selectedLocationId)
+    const location = locations.find((loc) => loc._id === selectedLocationId);
     if (location) {
-      onSelect(location)
-      onClose()
+      onSelect(location);
+      onClose();
     }
-  }
+  };
+
+  const handleClose = () => {
+    onClose();
+    setSelectedLocationId(usedLocation?._id || null);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -27,9 +44,20 @@ export function ListPickupLocationDialog({ userId, isOpen, onClose, locations, o
           ) : (
             <ul>
               {locations.map((location) => (
-                <li key={location._id} className={`p-4 border rounded-md cursor-pointer ${selectedLocationId === location._id ? "bg-blue-100 border-blue-500" : "hover:bg-gray-100"}`} onClick={() => setSelectedLocationId(location._id)}>
-                  <p className="font-semibold">{location.location_name}</p>
-                  <p>{location.address_text}</p>
+                <li
+                  key={location._id}
+                  className={`p-4 border rounded-md cursor-pointer ${
+                    selectedLocationId === location._id
+                      ? "bg-amber-100 border-amber-500"
+                      : "hover:bg-gray-100"
+                  }`}
+                  onClick={() => setSelectedLocationId(location._id)}
+                >
+                  <div className="">
+                    <p className="font-semibold">{location.location_name}</p>
+                    <p>{location.address_text}</p>
+                    <p>{location.sub_district}, Chatuchak, Bangkok, 10900</p>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -44,12 +72,12 @@ export function ListPickupLocationDialog({ userId, isOpen, onClose, locations, o
           </button>
           <button
             className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400"
-            onClick={onClose}
+            onClick={handleClose}
           >
             Cancel
           </button>
           <button
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300"
+            className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:bg-amber-300"
             onClick={handleSelectLocation}
             disabled={!selectedLocationId}
           >
@@ -58,6 +86,5 @@ export function ListPickupLocationDialog({ userId, isOpen, onClose, locations, o
         </div>
       </DialogContent>
     </Dialog>
-    
-  )
+  );
 }

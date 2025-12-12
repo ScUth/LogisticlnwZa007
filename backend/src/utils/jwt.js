@@ -14,17 +14,9 @@ export const generateRefreshToken = (payload) => {
 };
 
 export const verifyAccessToken = (token) => {
-  try {
-    return jwt.verify(token, JWT_ACCESS_SECRET);
-    } catch (error) {
-    return null;
-    }
+  return jwt.verify(token, JWT_ACCESS_SECRET);
 };
 
 export const verifyRefreshToken = (token) => {
-  try {
-    return jwt.verify(token, JWT_REFRESH_SECRET);
-    } catch (error) {
-    return null;
-    }
+  return jwt.verify(token, JWT_REFRESH_SECRET);
 };

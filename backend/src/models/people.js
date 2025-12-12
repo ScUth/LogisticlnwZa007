@@ -12,17 +12,6 @@ const SenderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/*========== DRIVER ==========*/
-const DriverSchema = new mongoose.Schema(
-  {
-    first_name: { type: String, required: true },
-    last_name: { type: String, required: true },
-    phone: { type: String, required : true, unique: true },
-    password: { type: String, required: true, select: false },
-  },
-  { timestamps: true }
-);
-
 /*========== RECIPIENT ==========*/
 const RecipientSchema = new mongoose.Schema(
   {
@@ -34,25 +23,21 @@ const RecipientSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/*========== COURIER ==========*/
-const CourierSchema = new mongoose.Schema(
+/*========== EMPLOYEE ==========*/
+const EmployeeSchema = new mongoose.Schema(
   {
-    courier_name: { type: String, required: true },
-    phone: { type: String },
-
-    transport: {
-      type: String,
-      enum: ["motorcycle", "bike", "walk", "van", "cart", "other"],
-      default: "motorcycle",
-    },
-
-    active: { type: Boolean, default: true },
+    first_name: { type: String, required: true },
+    last_name: { type: String, required: true },
+    phone: { type: String, required : true, unique: true },
+    password: { type: String, required: true, select: false },
+    employee_id: { type: String, required: true, unique: true },
+    role: { type: String, enum: ['admin', 'manager', 'staff', 'courier'], required: true },
   },
   { timestamps: true }
 );
 
 const Sender = mongoose.model("Sender", SenderSchema);
 const Recipient = mongoose.model("Recipient", RecipientSchema);
-const Courier = mongoose.model("Courier", CourierSchema);
+const Employee = mongoose.model("Employee", EmployeeSchema);
 
-export { Sender, Recipient, Courier };
+export { Sender, Recipient, Employee };

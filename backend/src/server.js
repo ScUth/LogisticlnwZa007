@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import locationRoutes from "./routes/locationRoutes.js";
+import InitializeDatabaseStructures from "./seed/seed.js";
 
 dotenv.config();
 
@@ -26,6 +27,8 @@ app.use(cookieParser());
 const RETRY_MS = 30000;
 let db_status = false;
 
+const RESET_SEED_DATA = process.env.RESET_SEED_DATA === "true" || true;
+
 // basic test route
 app.get("/api/health", (req, res) => {
   res.send({ backend: true, database: db_status });
@@ -45,6 +48,16 @@ const MONGO_URI =
 mongoose.connection.on("connected", () => {
   console.log("MongoDB connected");
   db_status = true;
+
+  if (RESET_SEED_DATA) {
+    try {
+      InitializeDatabaseStructures().then(() => {
+        console.log("Database structures initialized");
+      });
+    } catch (err) {
+      console.error("Error initializing database structures:", err.message);
+    }
+  }
 });
 
 mongoose.connection.on("disconnected", () => {

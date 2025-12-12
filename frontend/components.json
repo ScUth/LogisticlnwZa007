@@ -16,6 +16,6 @@
     "utils": "@/utils",
     "ui": "@/components/ui",
     "lib": "@/lib",
-    "contexts": "@/contexts"
+    "context": "@/context"
   }
 }

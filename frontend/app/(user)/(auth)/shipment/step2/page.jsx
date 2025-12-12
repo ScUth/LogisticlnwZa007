@@ -7,8 +7,6 @@ import { useAuth } from "@/context/authContext";
 export default function ShipmentPage() {
 
     const { user } = useAuth();
-    console.log("Authenticated user:", user);
-    console.log("User ID:", user ? user.first_name : "No user logged in");
     const [editingIndex, setEditingIndex] = useState(null);
 
     const [cart, setCart] = useState([]);
@@ -73,7 +71,7 @@ export default function ShipmentPage() {
     return (
         <div>
             <NavigationBar />
-            <div className="flex justify-center">
+            <div className="flex justify-center gap-2">
                 <div className="flex flex-col justify-center w-[800px] h-full mt-20 border rounded-lg shadow-lg">
                     <h1 className="text-2xl font-bold p-4 text-center">Shipment Form</h1>
                     {/* <h2 className="text-xl font-semibold p-4">Sender Information</h2> */}
@@ -147,10 +145,10 @@ export default function ShipmentPage() {
                                         }));
                                     }}
                                     className={`border rounded-lg p-3 w-1/3 text-center shadow-sm 
-                ${formData.parcelType === size.label ? "bg-blue-600 text-white" : "bg-white"}`}
+                ${formData.parcelType === size.label ? "bg-blue-600 hover:bg-blue-800 text-white" : "bg-white hover:bg-gray-400"}`}
                                 >
-                                    <div className="font-semibold">{size.label}</div>
-                                    <span className="text-xs text-gray-700">{size.dim} cm</span>
+                                    <div className={`font-semibold`}>{size.label}</div>
+                                    <span className={`text-xs ${formData.parcelType === size.label ? "text-white" : "text-gray-700"}`}>{size.dim} cm</span>
                                 </button>
                             ))}
                         </div>

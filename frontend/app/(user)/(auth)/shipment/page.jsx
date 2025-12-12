@@ -9,7 +9,6 @@ import { CreateLocationDialog } from "@/components/locations/create-location-dia
 import { ListPickupLocationDialog } from "@/components/locations/list-pickup-location-dialog";
 
 export default function ShipmentPage() {
-
 	const { user, loading: authLoading } = useAuth();
 	const router = useRouter();
 
@@ -29,13 +28,14 @@ export default function ShipmentPage() {
 		fetchSenderUsedLocation,
 	} = useLocation(user?._id);
 
-	const [openCreateLocationDialog, setOpenCreateLocationDialog] = useState(false);
+	const [openCreateLocationDialog, setOpenCreateLocationDialog] =
+		useState(false);
 	const [openListLocationDialog, setOpenListLocationDialog] = useState(false);
 
 	// Redirect to login if not authenticated
 	useEffect(() => {
 		if (!authLoading && !user) {
-			router.push("/login?redirect=/shipment");
+			router.push("/");
 		}
 	}, [authLoading, user, router]);
 
@@ -80,9 +80,8 @@ export default function ShipmentPage() {
 					<h1 className="text-2xl font-bold p-4 text-center">Shipment Form</h1>
 					{/* <h2 className="text-xl font-semibold p-4">Sender Information</h2> */}
 					<form className="flex flex-col p-4">
+						<label className="mb-2 font-semibold">Sender Address</label>
 
-						<label onClick={() => setOpenCreateLocationDialog(true)} className="mb-2 font-semibold">Sender Address</label>
-						
 						<CreateLocationDialog
 							isOpen={openCreateLocationDialog}
 							onClose={() => setOpenCreateLocationDialog(false)}
@@ -96,6 +95,7 @@ export default function ShipmentPage() {
 							isOpen={openListLocationDialog}
 							onClose={() => setOpenListLocationDialog(false)}
 							locations={locations}
+							usedLocation={usedLocation}
 							onSelect={async (location) => {
 								await updateLocation(location._id, { used_for_pickup: true });
 								await fetchSenderUsedLocation();
@@ -107,27 +107,31 @@ export default function ShipmentPage() {
 							}}
 						/>
 
-
 						<div className="flex flex-row mb-4 p-2 h-[100px] border-y border-gray-300 text-gray-400">
 							{/* if no used location, show "No saved sender address found. Please create one." */}
 							{/* else show html used location */}
 							{usedLocation ? (
 								<div className="w-[calc(100%-72px)]">
-									<p className="font-semibold text-gray-800">{usedLocation.location_name}</p>
+									<p className="font-semibold text-gray-800">
+										{usedLocation.location_name}
+									</p>
 									<p>{usedLocation.address_text}</p>
+									<p>{usedLocation.sub_district}, Chatuchak, Bangkok, 10900</p>
 								</div>
 							) : (
-								<p className="w-[calc(100%-72px)]">No saved sender address found. Please create one.</p>
+								<p className="w-[calc(100%-72px)]">
+									No saved sender address found. Please create one.
+								</p>
 							)}
 							<button
 								onClick={handleSetPickupLocation}
 								className="w-[72px] items-center justify-center"
 							>
-								<p className="text-gray-700 hover:underline">{usedLocation ? "Change" : "Add"}</p>
+								<p className="text-gray-700 hover:underline">
+									{usedLocation ? "Change" : "Add"}
+								</p>
 							</button>
 						</div>
-
-
 					</form>
 					<h2 className="text-xl font-semibold p-4">Receiver Information</h2>
 					<form className="flex flex-col p-4">
@@ -142,9 +146,20 @@ export default function ShipmentPage() {
 						<label className="mb-2 font-semibold">Receiver Contact</label>
 						<input type="text" className="border p-2 mb-4 rounded" />
 					</form>
-					<button className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded w-32 mx-auto mb-4" onClick={handleSubmit}>
-						Next
-					</button>
+					<div className="flex justify-between px-4">
+						<button
+							className="bg-gray-600 hover:bg-gray-700 text-white py-2 rounded w-32 mx-auto mb-4 previous"
+							onClick={() => history.back()}
+						>
+							Cancel
+						</button>
+						<button
+							className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded w-32 mx-auto mb-4"
+							onClick={handleSubmit}
+						>
+							Next
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -46,7 +46,7 @@ ParcelSchema.index({ status: 1, sla_due_at: 1 });
 /*========== ROUTE ==========*/
 const RouteSchema = new mongoose.Schema(
   {
-    courier_id: { type: ObjectId, ref: "Courier", required: true },
+    courier_id: { type: ObjectId, ref: "Employee", required: true },
     hub_id: { type: ObjectId, ref: "Hub", required: true },
 
     route_date: { type: Date, required: true },
@@ -92,7 +92,7 @@ const ParcelScanEventSchema = new mongoose.Schema(
   {
     parcel_id: { type: ObjectId, ref: "Parcel", required: true },
     hub_id: { type: ObjectId, ref: "Hub" }, // nullable
-    courier_id: { type: ObjectId, ref: "Courier" }, // nullable
+    courier_id: { type: ObjectId, ref: "Employee" }, // nullable
 
     event_type: {
       type: String,
@@ -120,7 +120,7 @@ ParcelScanEventSchema.index({ parcel_id: 1, event_time: 1 });
 const ProofOfDeliverySchema = new mongoose.Schema(
   {
     parcel_id: { type: ObjectId, ref: "Parcel", required: true },
-    courier_id: { type: ObjectId, ref: "Courier" },
+    courier_id: { type: ObjectId, ref: "Employee" },
 
     recipient_name: { type: String, required: true },
     signed_at: { type: Date, default: Date.now },

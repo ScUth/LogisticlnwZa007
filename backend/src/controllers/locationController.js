@@ -1,6 +1,6 @@
 import express from "express";
-import mongoose from "mongoose";
 import { Location } from "../models/location.js";
+import { oid } from "../utils/validators.js";
 
 // Function to create a new location
 export const createLocation = async (req, res) => {
@@ -125,7 +125,7 @@ export const updateLocation = async (req, res) => {
   try {
     const { locationId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(locationId)) {
+    if (!oid(locationId)) {
       return res.status(400).json({ message: "Invalid location ID" });
     }
 

@@ -6,14 +6,14 @@ import {
   updateLocation,
   getUsedLocationBySender,
 } from '../controllers/locationController.js';
-import { authenticate } from '../middleware/auth.js';
+import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/', authenticate, createLocation);
-router.get('/sender/:senderId', authenticate, getLocationsBySender);
-router.get('/sender/:senderId/used', authenticate, getUsedLocationBySender);
-router.get('/:locationId', authenticate, getLocationById);
-router.patch('/:locationId', authenticate, updateLocation);
+router.post('/', auth, createLocation);
+router.get('/sender/:senderId', auth, getLocationsBySender);
+router.get('/sender/:senderId/used', auth, getUsedLocationBySender);
+router.get('/:locationId', auth, getLocationById);
+router.patch('/:locationId', auth, updateLocation);
 
 export default router;

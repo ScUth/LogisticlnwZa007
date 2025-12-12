@@ -1,5 +1,4 @@
 import "./globals.css";
-import { AuthProvider } from "@/context/authContext";
 
 export const metadata = {
   title: "DB Project Dashboard",
@@ -11,9 +10,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="bg-background text-foreground">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        {children}
       </body>
     </html>
   );
