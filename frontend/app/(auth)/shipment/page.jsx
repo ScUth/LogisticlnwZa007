@@ -1,16 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { NavigationBar } from "@/components/navbar";
-import { useAuth } from "@/contexts/authContext";
+import { useAuth } from "@/context/authContext";
 import { useRouter } from "next/navigation";
 import { useLocation } from "@/lib/use-location";
 import { CreateLocationDialog } from "@/components/locations/create-location-dialog";
+import { ListPickupLocationDialog } from "@/components/locations/list-pickup-location-dialog";
 
 export default function ShipmentPage() {
 
-	const { user } = useAuth();
+	const { user, loading: authLoading } = useAuth();
 	const router = useRouter();
+
+	const [receiverName, setReceiverName] = useState("");
+	const [receiverAddress, setReceiverAddress] = useState("");
+	const [receiverContact, setReceiverContact] = useState("");
 
 	const {
 		locations,
@@ -25,37 +30,46 @@ export default function ShipmentPage() {
 	} = useLocation(user?._id);
 
 	const [openCreateLocationDialog, setOpenCreateLocationDialog] = useState(false);
+	const [openListLocationDialog, setOpenListLocationDialog] = useState(false);
 
-	// console.log("Used locations state:", usedLocation);
+	// Redirect to login if not authenticated
+	useEffect(() => {
+		if (!authLoading && !user) {
+			router.push("/login?redirect=/shipment");
+		}
+	}, [authLoading, user, router]);
 
-	const testHandleFetchLocations = async () => {
-		await fetchSenderUsedLocation();
-		// console.log("Used locations:", usedLocation);
+	// Show loading state while auth is loading
+	if (authLoading) {
+		return (
+			<div>
+				<NavigationBar />
+				<div className="flex justify-center items-center h-screen">
+					<p>Loading...</p>
+				</div>
+			</div>
+		);
 	}
 
-	const [formData, setFormData] = useState({
-		senderName: "",
-		senderAddress: "",
-		senderContact: "",
-		receiverName: "",
-		receiverAddress: "",
-		receiverContact: "",
-	});
+	// Don't render if no user (will redirect)
+	if (!user) {
+		return null;
+	}
 
 	// set sender name when user data is available
-	useEffect(() => {
-		if (user) {
-			setFormData((prevData) => ({
-				...prevData,
-				senderName: `${user.first_name} ${user.last_name}`,
-				senderContact: `${user.phone}`,
-			}));
-		}
-	}, [user]);
-
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		router.push("/shipment/step2");
+	};
+
+	const handleSetPickupLocation = async (e) => {
+		e.preventDefault();
+		if (!usedLocation) {
+			setOpenCreateLocationDialog(true);
+		} else {
+			await fetchLocationsBySenderId();
+			setOpenListLocationDialog(true);
+		}
 	};
 
 	return (
@@ -68,20 +82,51 @@ export default function ShipmentPage() {
 					<form className="flex flex-col p-4">
 
 						<label onClick={() => setOpenCreateLocationDialog(true)} className="mb-2 font-semibold">Sender Address</label>
-						{/* dropdown for saved addresses */}
-						{/* tmp */}
-						{/* create location dialog */}
+						
 						<CreateLocationDialog
 							isOpen={openCreateLocationDialog}
 							onClose={() => setOpenCreateLocationDialog(false)}
 							userId={user?._id}
+							onCreate={createLocation}
+							onSuccess={fetchSenderUsedLocation}
 						/>
-						{usedLocation && (
-							<p className="mb-4 p-2 border rounded">
-								{usedLocation.location_name}
-								, {usedLocation.address_text}
-							</p>
-						)}
+
+						<ListPickupLocationDialog
+							userId={user?._id}
+							isOpen={openListLocationDialog}
+							onClose={() => setOpenListLocationDialog(false)}
+							locations={locations}
+							onSelect={async (location) => {
+								await updateLocation(location._id, { used_for_pickup: true });
+								await fetchSenderUsedLocation();
+								setOpenListLocationDialog(false);
+							}}
+							openCreateLocationDialog={() => {
+								setOpenListLocationDialog(false);
+								setOpenCreateLocationDialog(true);
+							}}
+						/>
+
+
+						<div className="flex flex-row mb-4 p-2 h-[100px] border-y border-gray-300 text-gray-400">
+							{/* if no used location, show "No saved sender address found. Please create one." */}
+							{/* else show html used location */}
+							{usedLocation ? (
+								<div className="w-[calc(100%-72px)]">
+									<p className="font-semibold text-gray-800">{usedLocation.location_name}</p>
+									<p>{usedLocation.address_text}</p>
+								</div>
+							) : (
+								<p className="w-[calc(100%-72px)]">No saved sender address found. Please create one.</p>
+							)}
+							<button
+								onClick={handleSetPickupLocation}
+								className="w-[72px] items-center justify-center"
+							>
+								<p className="text-gray-700 hover:underline">{usedLocation ? "Change" : "Add"}</p>
+							</button>
+						</div>
+
 
 					</form>
 					<h2 className="text-xl font-semibold p-4">Receiver Information</h2>

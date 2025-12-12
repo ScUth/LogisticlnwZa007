@@ -1,5 +1,5 @@
 import "./globals.css";
-import { AuthProvider } from "@/contexts/authContext";
+import { AuthProvider } from "@/context/authContext";
 
 export const metadata = {
   title: "DB Project Dashboard",

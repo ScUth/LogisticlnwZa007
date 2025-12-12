@@ -3,31 +3,42 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { StyledCheckbox } from "@/components/ui/checkbox"
-import { useLocation } from "@/lib/use-location"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
-export function CreateLocationDialog({ userId, isOpen, onClose }) {
-  const { createLocation } = useLocation(userId)
+export function CreateLocationDialog({ userId, isOpen, onClose, onCreate, onSuccess }) {
+
   const [locationName, setLocationName] = useState("")
   const [addressText, setAddressText] = useState("")
-  const [regionCode, setRegionCode] = useState("")
+  const [subDistrict, setSubDistrict] = useState("")
   const [usedForPickup, setUsedForPickup] = useState(false)
+
+  const sub_district_options = [
+    "Lat Yao",
+    "Sena Nikhom",
+    "Chan Kasem",
+    "Chom Phon",
+    "Chatuchak",
+  ]
 
   useEffect(() => {
     if (isOpen) {
       setLocationName("")
       setAddressText("")
-      setRegionCode("")
+      setSubDistrict("")
       setUsedForPickup(false)
     }
   }, [isOpen])
 
   const handleCreateLocation = async () => {
-    await createLocation({
+    await onCreate({
       location_name: locationName,
       address_text: addressText,
-      region_code: regionCode,
+      sub_district: subDistrict,
       used_for_pickup: usedForPickup,
     })
+    if (onSuccess) {
+      await onSuccess()
+    }
     onClose()
   }
   return (
@@ -55,22 +66,38 @@ export function CreateLocationDialog({ userId, isOpen, onClose }) {
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
             />
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700">Region Code</label>
-            <input
-              type="text"
-              value={regionCode}
-              onChange={(e) => setRegionCode(e.target.value)}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-            />
+            <label className="block text-sm font-medium text-gray-700">Sub District</label>
+            <div className="flex items-center gap-x-4">
+              <Select
+                value={subDistrict}
+                onValueChange={(value) => {
+                  setSubDistrict(value);
+                }}
+              >
+                <SelectTrigger className="w-2/5 mt-1">
+                  <SelectValue placeholder="Select a sub district" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sub_district_options.map((district) => (
+                    <SelectItem key={district} value={district} className="px-8">
+                      {district}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex items-center">
+                <StyledCheckbox
+                  checked={usedForPickup}
+                  onCheckedChange={(checked) => setUsedForPickup(checked)}
+                />
+                <label className="ml-2 text-sm text-gray-700">Used for Pickup</label>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center">
-            <StyledCheckbox
-              checked={usedForPickup}
-              onCheckedChange={(checked) => setUsedForPickup(checked)}
-            />
-            <label className="ml-2 text-sm text-gray-700">Used for Pickup</label>
-          </div>
+
+
           <div className="flex justify-end space-x-2">
             <button
               onClick={onClose}

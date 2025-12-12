@@ -6,7 +6,7 @@ import { NavigationBar } from "@/components/navbar";
 import TransportPicture from "@/components/img/transport.jpg";
 import { Package } from "lucide-react";
 import Image from "next/image";
-import { useAuth } from "@/contexts/authContext";
+import { useAuth } from "@/context/authContext";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
 

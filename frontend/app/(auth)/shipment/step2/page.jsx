@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { NavigationBar } from "@/components/navbar";
-import { useAuth } from "@/contexts/authContext";
+import { useAuth } from "@/context/authContext";
 
 export default function ShipmentPage() {
 

@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import { Location } from "../models/location.js";
 
 // Function to create a new location
@@ -7,7 +8,7 @@ export const createLocation = async (req, res) => {
     const {
       location_name,
       address_text,
-      region_code,
+      sub_district,
       sender,
       used_for_pickup,
     } = req.body;
@@ -38,7 +39,7 @@ export const createLocation = async (req, res) => {
     const newLocation = new Location({
       location_name: location_name.trim(),
       address_text: address_text.trim(),
-      region_code,
+      sub_district,
       sender: sender.trim(),
       used_for_pickup: usedForPickup,
     });
@@ -130,7 +131,7 @@ export const updateLocation = async (req, res) => {
 
     const { used_for_pickup, ...rest } = req.body;
 
-    const allowedUpdates = ["location_name", "address_text", "region_code"];
+    const allowedUpdates = ["location_name", "address_text", "sub_district"];
     const isValidOperation = Object.keys(rest).every((field) =>
       allowedUpdates.includes(field)
     );
