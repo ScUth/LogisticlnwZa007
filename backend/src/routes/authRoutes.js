@@ -8,8 +8,10 @@ import {
   loginEmployee,
   registerEmployee,
   getCurrentEmployee,
+  loginAdmin,
+  getCurrentAdmin,
 } from "../controllers/authController.js";
-import { auth, requireSender, requireEmployee } from "../middleware/auth.js";
+import { auth, requireSender, requireEmployee, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -33,5 +35,14 @@ router.post("/employee/logout", auth, (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 });
 router.get("/employee/me", auth, requireEmployee, getCurrentEmployee);
+
+// admin auth routes
+router.post("/admin/login", loginAdmin);
+router.post("/admin/logout", auth, (req, res) => {
+  res.clearCookie("adminAccessToken");
+  res.clearCookie("adminRefreshToken");
+  res.status(200).json({ message: "Logged out successfully" });
+});
+router.get("/admin/me", auth, requireAdmin, getCurrentAdmin);
 
 export default router;

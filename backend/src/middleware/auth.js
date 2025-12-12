@@ -2,7 +2,7 @@ import { verifyAccessToken } from '../utils/jwt.js';
 
 export const auth = (req, res, next) => {
 	// Check for both sender and employee tokens
-	const token = req.cookies.accessToken || req.cookies.employeeAccessToken;
+	const token = req.cookies.accessToken || req.cookies.employeeAccessToken || req.cookies.adminAccessToken;
 	if (!token) {
 		return res.status(401).json({ message: 'Access token is missing' });
 	}
@@ -27,5 +27,12 @@ export const requireEmployee = (req, res, next) => {
     return res.status(403).json({ message: "Employee only" });
   }
   next();
+};
+
+export const requireAdmin = (req, res, next) => {
+	if (req.auth?.role !== "admin") {
+		return res.status(403).json({ message: "Admin only" });
+	}
+	next();
 };
 

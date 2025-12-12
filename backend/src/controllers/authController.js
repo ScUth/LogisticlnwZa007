@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import { Sender, Recipient, Employee } from '../models/people.js';
+import { Sender, Recipient, Employee, Admin } from '../models/people.js';
 import { generateAccessToken, generateRefreshToken, verifyAccessToken } from '../utils/jwt.js';
 import { parseTtlToMs, addMsToCurrentTime } from "../utils/time.js";
 
@@ -30,6 +30,15 @@ const setEmployeeAuthCookies = (res, accessToken, refreshToken) => {
 	});
 	res.cookie('employeeRefreshToken', refreshToken, {
 		...baseCookieOptions, maxAge: refresh_ttl, // 90 days
+	});
+}
+
+const setAdminAuthCookies = (res, accessToken, refreshToken) => {
+	res.cookie('adminAccessToken', accessToken, {
+		...baseCookieOptions, maxAge: access_ttl,
+	});
+	res.cookie('adminRefreshToken', refreshToken, {
+		...baseCookieOptions, maxAge: refresh_ttl,
 	});
 }
 
@@ -89,6 +98,12 @@ export const loginUser = async (req, res) => {
 
 		const token = generateAccessToken(payload);
 		const refreshToken = generateRefreshToken(payload);
+
+		// Clear any employee/admin cookies to prevent conflicts
+		res.clearCookie('employeeAccessToken', baseCookieOptions);
+		res.clearCookie('employeeRefreshToken', baseCookieOptions);
+		res.clearCookie('adminAccessToken', baseCookieOptions);
+		res.clearCookie('adminRefreshToken', baseCookieOptions);
 
 		// send cookie
 		setSenderAuthCookies(res, token, refreshToken);
@@ -209,10 +224,17 @@ export const loginEmployee = async (req, res) => {
 			return res.status(400).json({ message: 'Invalid credentials' });
 		}
 		// Generate JWT token with employee type
-		const payload = { id: employee._id.toString(), type: 'employee', role: employee.role };
+		const payload = { id: employee._id.toString(), type: 'employee' };
 		const token = generateAccessToken(payload);
 		const refreshToken = generateRefreshToken(payload);
-		// send cookie
+		
+		// Clear any sender/admin cookies to prevent conflicts
+		res.clearCookie('accessToken', baseCookieOptions);
+		res.clearCookie('refreshToken', baseCookieOptions);
+		res.clearCookie('adminAccessToken', baseCookieOptions);
+		res.clearCookie('adminRefreshToken', baseCookieOptions);
+		
+		// send employee cookies
 		setEmployeeAuthCookies(res, token, refreshToken);
 		res.status(200).json({ 
 			message: 'Employee logged in successfully', 
@@ -236,7 +258,51 @@ export const getCurrentEmployee = async (req, res) => {
 		if (!employee) {
 			return res.status(404).json({ message: 'Employee not found' });
 		}
+		console.log("Current Employee:", employee);
 		res.status(200).json({ employee });
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ message: 'Server error' });
+	}
+};
+
+
+//------------------------------------------------------------
+// Admin auth Controller Functions
+//------------------------------------------------------------
+export const loginAdmin = async (req, res) => {
+	try {
+		const { employee_id, password } = req.body;
+		const admin = await Admin.findOne({ employee_id }).select('+password');//
+		if (!admin) return res.status(404).json({ message: 'Admin not found' });
+		const isMatch = await bcrypt.compare(password, admin.password);
+		console.log("", isMatch);
+		if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+
+		const payload = { id: admin._id.toString(), type: 'admin' };
+		const token = generateAccessToken(payload);
+		const refreshToken = generateRefreshToken(payload);
+		
+		// Clear any sender/employee cookies to prevent conflicts
+		res.clearCookie('accessToken', baseCookieOptions);
+		res.clearCookie('refreshToken', baseCookieOptions);
+		res.clearCookie('employeeAccessToken', baseCookieOptions);
+		res.clearCookie('employeeRefreshToken', baseCookieOptions);
+		
+		// set admin cookies
+		setAdminAuthCookies(res, token, refreshToken);
+		res.status(200).json({ message: 'Admin logged in successfully', admin: { id: admin._id, first_name: admin.first_name, last_name: admin.last_name, employee_id: admin.employee_id } });
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ message: 'Server error' });
+	}
+};
+
+export const getCurrentAdmin = async (req, res) => {
+	try {
+		const admin = await Admin.findById(req.auth.id).select('-password');
+		if (!admin) return res.status(404).json({ message: 'Admin not found' });
+		res.status(200).json({ admin });
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ message: 'Server error' });

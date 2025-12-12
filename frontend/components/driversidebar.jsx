@@ -4,12 +4,37 @@ import { MoreVertical, ChevronLast, ChevronFirst } from "lucide-react"
 import logo from "./img/whitelogo.png";
 import { useContext, createContext, useState } from "react"
 import Image from "next/image";
+import { useEmployeeAuth } from "@/context/employeeAuthContext";
+import React from "react";
+import { useRouter } from "next/navigation";
 
 const SidebarContext = createContext()
 
 export default function Sidebar({ children }) {
     const [expanded, setExpanded] = useState(true)
+    const { employee, register, login, logout } = useEmployeeAuth();
+    const [profileClick, setProfileClick] = useState(false)
+    const router = useRouter()
 
+    const handleLogout = async () => {
+        try {
+            await logout();
+            setProfileClick(false)
+            router.push("/employee/login")
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    const handleProfileClick = async () => {
+        if (profileClick) {
+            setProfileClick(false)
+        }
+        else {
+            setProfileClick(true)
+        }
+    }
+    
     return (
         <aside className="h-screen">
             <nav className={`h-full flex flex-col bg-amber-600 border-r shadow-sm transition-all duration-200 flex-shrink-0 ${expanded ? "w-64" : "w-16"}`}>
@@ -37,26 +62,43 @@ export default function Sidebar({ children }) {
                 <SidebarContext.Provider value={{ expanded }}>
                     <ul className="flex-1 px-2 py-2 space-y-1">{children}</ul>
                 </SidebarContext.Provider>
-
-                <div className="border-t flex p-3 items-center gap-3">
-                    <img
-                        src="https://ui-avatars.com/api/?background=c7d2fe&color=3730a3&bold=true"
-                        alt=""
-                        className="w-10 h-10 rounded-md"
-                    />
-                    <div
-                        className={`
-              flex justify-between items-center
-              overflow-hidden transition-all ${expanded ? "w-52 ml-3" : "w-0"}
-          `}
-                    >
-                        <div className="leading-4">
-                            <h4 className="font-semibold text-white">John Doe</h4>
-                            <span className="text-xs text-white/80">johndoe@gmail.com</span>
+                <button onClick={handleProfileClick} className="hover:bg-amber-700">
+                    <div className="border-t flex p-3 items-center gap-3">
+                        <img
+                            src="https://ui-avatars.com/api/?background=c7d2fe&color=3730a3&bold=true"
+                            alt=""
+                            className="w-10 h-10 rounded-md"
+                        />
+                        <div
+                            className={`
+                flex justify-between items-center
+                overflow-hidden transition-all ${expanded ? "w-52 ml-3" : "w-0"}
+            `}
+                        >
+                            <div className="leading-4">
+                                <h4 className="font-semibold text-white">{employee?.first_name} {employee?.last_name}</h4>
+                                <span className="text-xs text-white/80">{employee?.employee_id}</span>
+                            </div>
                         </div>
-                        <MoreVertical size={20} color="#ffffff" />
                     </div>
-                </div>
+                </button>
+                
+                {profileClick && (
+                    <button className="hover:bg-amber-700" onClick={handleLogout}>
+                        <div className="border-t flex p-3 items-center gap-3">
+                            <div
+                                className={`
+                    flex justify-between items-center
+                    overflow-hidden transition-all ${expanded ? "w-52 ml-3" : "w-0"}
+                `}
+                            >
+                                <div className="font-bold text-white">
+                                    Logout
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+                )}
             </nav>
         </aside>
     )

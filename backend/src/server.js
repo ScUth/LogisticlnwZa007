@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import locationRoutes from "./routes/locationRoutes.js";
+import courierRoutes from "./routes/courierRoutes.js";
 import InitializeDatabaseStructures from "./seed/seed.js";
 
 dotenv.config();
@@ -39,6 +40,9 @@ app.use("/api/auth", authRoutes);
 
 // Location routes
 app.use("/api/locations", locationRoutes);
+
+// Admin: courier listing
+app.use("/api/admin/couriers", courierRoutes);
 
 // connect DB + start
 const PORT = process.env.PORT || 4826;

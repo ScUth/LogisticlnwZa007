@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt"
-import { Sender, Recipient, Employee } from "../models/people.js";
+import { Sender, Recipient, Employee, Admin } from "../models/people.js";
 
 async function InitializeDatabaseStructures() {
     try {
@@ -44,6 +44,19 @@ async function InitializeDatabaseStructures() {
                 role: "courier"
             },
         ]);
+
+        // admin account
+        const AdminPass = await bcrypt.hash('admin1234', ROUNDS);
+        const adminExists = await Admin.findOne({ employee_id: "ADMIN001" });
+        if (!adminExists) {
+            await Admin.create({
+                first_name: "Admin",
+                last_name: "User",
+                phone: "0000000000",
+                password: AdminPass,
+                employee_id: "ADMIN001",
+            });
+        }
         
         console.log("Seed data inserted successfully");
     } catch (error) {

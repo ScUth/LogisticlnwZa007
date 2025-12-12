@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { NavigationBar } from "@/components/navbar";
 import { useAuth } from "@/context/authContext";
+import { ChevronLeft } from "lucide-react";
 
 export default function ShipmentPage() {
 
@@ -148,7 +149,7 @@ export default function ShipmentPage() {
                 ${formData.parcelType === size.label ? "bg-blue-600 hover:bg-blue-800 text-white" : "bg-white hover:bg-gray-400"}`}
                                 >
                                     <div className={`font-semibold`}>{size.label}</div>
-                                    <span className={`text-xs ${formData.parcelType === size.label ? "text-white" : "text-gray-700"}`}>{size.dim} cm</span>
+                                    <span className={`text-xs ${formData.parcelType === size.label ? "text-white" : "text-gray-700"}`}>{"<"} {size.dim} cm</span>
                                 </button>
                             ))}
                         </div>
@@ -231,7 +232,7 @@ export default function ShipmentPage() {
                                             <div>
                                                 <div className="font-semibold">{item.parcelType} Parcel</div>
                                                 <div className="text-sm text-gray-700">
-                                                    {item.length} × {item.width} × {item.height} cm
+                                                   {item.length} × {item.width} × {item.height} cm
                                                 </div>
                                                 <div className="text-sm">Weight: {item.weight} kg</div>
                                                 <div className="text-sm">Quantity: {item.quantity}</div>

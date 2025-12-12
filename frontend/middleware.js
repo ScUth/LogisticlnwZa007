@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 export function middleware(req) {
   const accessToken = req.cookies.get("accessToken")?.value;
   const employeeAccessToken = req.cookies.get("employeeAccessToken")?.value;
+  const adminAccessToken = req.cookies.get("adminAccessToken")?.value;
 
   const url = req.nextUrl.clone();
 
@@ -34,4 +35,10 @@ export function middleware(req) {
     url.pathname = "/employee/login";
     return NextResponse.redirect(url);
   }
+
+  const adminProtectedRoutes = ["/admin"];
+  if (adminProtectedRoutes.some((route) => url.pathname.startsWith(route)) && !adminAccessToken && url.pathname !== "/admin/login") {
+    url.pathname = "/admin/login";
+    return NextResponse.redirect(url);
+  }       
 }

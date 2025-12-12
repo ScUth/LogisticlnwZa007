@@ -1,3 +1,4 @@
+
 "use client"
 
 import Sidebar, { SidebarItem } from "@/components/driversidebar"
@@ -14,8 +15,8 @@ export default function Parcel() {
                 <SidebarItem icon={<Play />} text="Dashboard" onClick={() => router.push('/employee/courier/dashboard')}/>
                 <SidebarItem icon={<Package />} text="Parcel" onClick={() => router.push('/employee/courier/parcel')}/>
                 <SidebarItem icon={<Package />} text="Parcels" onClick={() => router.push('/employee/courier/parcels')}/>
-                <SidebarItem icon={<MapPin />} text="Route" active/>
-                <SidebarItem icon={<Truck />} text="Pickup" onClick={() => router.push('/employee/courier/pickup')}/>
+                <SidebarItem icon={<MapPin />} text="Route" onClick={() => router.push('/employee/courier/route')}/>
+                <SidebarItem icon={<MapPin />} text="Pickup" active/>
             </Sidebar>
         </div>
     )

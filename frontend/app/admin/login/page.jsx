@@ -3,43 +3,24 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import TransportationPicture from "@/components/img/transport_1.jpg";
-import React from "react";
-import { useEmployeeAuth } from "@/context/employeeAuthContext";
+import React, { useEffect } from "react";
+import { useAdminAuth } from "@/context/adminAuthContext";
 
 
-export default function EmployeeLogin() {
+export default function AdminLogin() {
     const router = useRouter();
 
-    const { employee, register, login, logout } = useEmployeeAuth();
-
-    const [employeeId, setEmployeeId] = React.useState("");
+    const [AdminId, setAdminId] = React.useState("");
     const [password, setPassword] = React.useState("");
     const [error, setError] = React.useState("");
+    const { admin, login } = useAdminAuth();
 
-    // Redirect based on employee role after login
-    React.useEffect(() => {
-        if (employee) {
-            console.log("Logged in employee:", employee);
-            switch (employee.role) {
-                case "courier":
-                    router.push("/employee/courier");
-                    break;
-                case "manager":
-                    router.push("/employee/manager");
-                    break;
-                case "staff":
-                    router.push("/employee/staff");
-                    break;
-                default:
-                    router.push("/employee/login");
-            }
-        }
-    }, [employee, router]);
+    // Redirect based on Admin role after login\
 
     const handleLogin = async () => {
         setError("");
         try {
-            const success = await login(employeeId, password);
+            const success = await login(AdminId, password);
             if (!success) {
                 setError("Failed to log in. Please check your credentials.");
             }
@@ -49,6 +30,12 @@ export default function EmployeeLogin() {
         }
     };
 
+    useEffect(() => {
+        if (admin) {
+            router.push('/admin');
+        }
+    }, [admin, router]);
+
     return (
         <div className="min-h-screen flex flex-col md:flex-row items-stretch">
             <div className="w-full md:w-1/2 flex items-center justify-center bg-gray-50">
@@ -57,16 +44,16 @@ export default function EmployeeLogin() {
 
             <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-6">
                 <div className="w-full max-w-md">
-                    <h1 className="text-2xl font-semibold mb-4">Employee Login</h1>
+                    <h1 className="text-2xl font-semibold mb-4">Admin Login</h1>
                     {error && <div className="mb-4 text-red-600">{error}</div>}
                     <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-3">
                         <label className="block">
-                            <span className="text-sm text-gray-600">Employee ID</span>
+                            <span className="text-sm text-gray-600">Admin ID</span>
                             <input
                                 type="text"
-                                placeholder="Enter your employee ID"
-                                value={employeeId}
-                                onChange={(e) => setEmployeeId(e.target.value)}
+                                placeholder="Enter your Admin ID"
+                                value={AdminId}
+                                onChange={(e) => setAdminId(e.target.value)}
                                 className="w-full mt-1 px-3 py-2 border rounded focus:outline-none focus:ring"
                             />
                         </label>
