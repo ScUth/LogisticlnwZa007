@@ -30,7 +30,7 @@
 
 
 ## Project Structure
-
+`tree -I "node_modules"`
 ```text
 .
 ├── README.md
@@ -45,7 +45,7 @@
 │       │   └── logger.js
 │       ├── controllers
 │       │   ├── authController.js
-│       │   ├── driverController.js
+│       │   ├── employeeController.js
 │       │   ├── hubController.js
 │       │   ├── locationController.js
 │       │   ├── parcelController.js
@@ -59,12 +59,15 @@
 │       │   └── people.js
 │       ├── routes
 │       │   ├── authRoutes.js
-│       │   ├── driverRoutes.js
+│       │   ├── courierRoutes.js
 │       │   ├── hubRoutes.js
+│       │   ├── locationRoutes.js
 │       │   ├── parcelRoutes.js
 │       │   ├── podRoutes.js
 │       │   ├── routeRoutes.js
 │       │   └── scanRoutes.js
+│       ├── seed
+│       │   └── seed.js
 │       ├── server.js
 │       ├── services
 │       │   ├── notificationService.js
@@ -78,63 +81,109 @@
 ├── frontend
 │   ├── Dockerfile.dev
 │   ├── app
-│   │   ├── (admin)
-│   │   │   ├── dashboard
-│   │   │   ├── drivers
-│   │   │   ├── hubs
-│   │   │   ├── layout.jsx
-│   │   │   ├── parcels
-│   │   │   │   ├── [id]
+│   │   ├── (user)
+│   │   │   ├── (auth)
+│   │   │   │   ├── login
 │   │   │   │   │   └── page.jsx
-│   │   │   │   ├── create
-│   │   │   │   │   └── page.jsx
-│   │   │   │   └── page.jsx
-│   │   │   ├── pod
-│   │   │   ├── routes
-│   │   │   └── scans
-│   │   ├── (auth)
-│   │   │   ├── login
-│   │   │   │   └── page.jsx
-│   │   │   └── shipment
-│   │   │       └── page.jsx
-│   │   ├── (courier)
-│   │   │   ├── dashboard
-│   │   │   │   └── page.jsx
-│   │   │   ├── layout.jsx
-│   │   │   ├── parcel
-│   │   │   │   └── [id]
-│   │   │   │       └── page.jsx
-│   │   │   ├── parcels
-│   │   │   │   └── page.jsx
-│   │   │   └── route
-│   │   │       └── page.jsx
-│   │   ├── (public)
+│   │   │   │   └── shipment
+│   │   │   │       ├── page.jsx
+│   │   │   │       └── step2
+│   │   │   │           └── page.jsx
 │   │   │   ├── aboutus
 │   │   │   │   └── page.jsx
 │   │   │   ├── contact
 │   │   │   │   └── page.jsx
+│   │   │   ├── layout.jsx
 │   │   │   ├── page.jsx
 │   │   │   └── track
 │   │   │       └── page.jsx
-│   │   ├── components
-│   │   │   ├── AdminSidebar.jsx
-│   │   │   ├── DriverHeader.jsx
-│   │   │   ├── PublicNav.jsx
-│   │   │   ├── img
-│   │   │   │   ├── contactus.jpg
-│   │   │   │   ├── logo.png
-│   │   │   │   ├── transport.jpg
-│   │   │   │   ├── transport_1.jpg
-│   │   │   │   └── whitelogo.png
-│   │   │   ├── navbar.jsx
-│   │   │   └── ui
+│   │   ├── admin
+│   │   │   ├── dashboard
+│   │   │   │   └── page.jsx
+│   │   │   ├── layout.jsx
+│   │   │   ├── login
+│   │   │   │   └── page.jsx
+│   │   │   ├── management
+│   │   │   │   ├── courier
+│   │   │   │   │   ├── detail
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   ├── list
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── hub
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── page.jsx
+│   │   │   │   ├── parcel
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── pod
+│   │   │   │   │   ├── detail
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   ├── list
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── route
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── scan_event
+│   │   │   │   │   └── page.jsx
+│   │   │   │   └── sender_n_recipient_records
+│   │   │   │       └── page.jsx
+│   │   │   └── page.jsx
+│   │   ├── employee
+│   │   │   ├── courier
+│   │   │   │   ├── [id]
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── dashboard
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── page.jsx
+│   │   │   │   ├── parcel
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── parcels
+│   │   │   │   │   └── page.jsx
+│   │   │   │   ├── pickup
+│   │   │   │   │   └── pickup.jsx
+│   │   │   │   └── route
+│   │   │   │       └── page.jsx
+│   │   │   ├── layout.jsx
+│   │   │   └── login
+│   │   │       └── page.jsx
 │   │   ├── globals.css
-│   │   └── layout.jsx
+│   │   ├── layout.jsx
+│   │   └── test
+│   │       └── page.jsx
+│   ├── components
+│   │   ├── AdminSidebar.jsx
+│   │   ├── DriverHeader.jsx
+│   │   ├── PublicNav.jsx
+│   │   ├── driversidebar.jsx
+│   │   ├── img
+│   │   │   ├── Caveman-SpongeBob.jpg
+│   │   │   ├── contactus.jpg
+│   │   │   ├── logo.png
+│   │   │   ├── transport.jpg
+│   │   │   ├── transport_1.jpg
+│   │   │   └── whitelogo.png
+│   │   ├── locations
+│   │   │   ├── create-location-dialog.jsx
+│   │   │   └── list-pickup-location-dialog.jsx
+│   │   ├── navbar.jsx
+│   │   └── ui
+│   │       ├── checkbox.jsx
+│   │       ├── dialog.jsx
+│   │       ├── select.jsx
+│   │       └── tabs.jsx
 │   ├── components.json
+│   ├── context
+│   │   ├── adminAuthContext.jsx
+│   │   ├── authContext.jsx
+│   │   ├── employeeAuthContext.jsx
+│   │   └── shipmentContext.jsx
+│   ├── jsconfig.json
 │   ├── lib
 │   │   ├── api.js
 │   │   ├── auth.js
-│   │   └── helpers.js
+│   │   ├── helpers.js
+│   │   ├── use-location.js
+│   │   └── utils.js
 │   ├── middleware.js
 │   ├── package-lock.json
 │   ├── package.json
@@ -143,7 +192,7 @@
 │   └── utils
 └── package-lock.json
 
-40 directories, 70 files
+53 directories, 106 files
 ```
 
 ## Quick Start (Development Mode)
