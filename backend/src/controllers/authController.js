@@ -99,12 +99,6 @@ export const loginUser = async (req, res) => {
 		const token = generateAccessToken(payload);
 		const refreshToken = generateRefreshToken(payload);
 
-		// Clear any employee/admin cookies to prevent conflicts
-		res.clearCookie('employeeAccessToken', baseCookieOptions);
-		res.clearCookie('employeeRefreshToken', baseCookieOptions);
-		res.clearCookie('adminAccessToken', baseCookieOptions);
-		res.clearCookie('adminRefreshToken', baseCookieOptions);
-
 		// send cookie
 		setSenderAuthCookies(res, token, refreshToken);
 
@@ -223,16 +217,10 @@ export const loginEmployee = async (req, res) => {
 		if (!isMatch) {
 			return res.status(400).json({ message: 'Invalid credentials' });
 		}
-		// Generate JWT token with employee type
-		const payload = { id: employee._id.toString(), type: 'employee' };
+		// Generate JWT token with employee type and role
+		const payload = { id: employee._id.toString(), type: 'employee', role: employee.role };
 		const token = generateAccessToken(payload);
 		const refreshToken = generateRefreshToken(payload);
-		
-		// Clear any sender/admin cookies to prevent conflicts
-		res.clearCookie('accessToken', baseCookieOptions);
-		res.clearCookie('refreshToken', baseCookieOptions);
-		res.clearCookie('adminAccessToken', baseCookieOptions);
-		res.clearCookie('adminRefreshToken', baseCookieOptions);
 		
 		// send employee cookies
 		setEmployeeAuthCookies(res, token, refreshToken);
@@ -279,15 +267,9 @@ export const loginAdmin = async (req, res) => {
 		console.log("", isMatch);
 		if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-		const payload = { id: admin._id.toString(), type: 'admin' };
+		const payload = { id: admin._id.toString(), type: 'admin', role: 'admin' };
 		const token = generateAccessToken(payload);
 		const refreshToken = generateRefreshToken(payload);
-		
-		// Clear any sender/employee cookies to prevent conflicts
-		res.clearCookie('accessToken', baseCookieOptions);
-		res.clearCookie('refreshToken', baseCookieOptions);
-		res.clearCookie('employeeAccessToken', baseCookieOptions);
-		res.clearCookie('employeeRefreshToken', baseCookieOptions);
 		
 		// set admin cookies
 		setAdminAuthCookies(res, token, refreshToken);
@@ -300,9 +282,28 @@ export const loginAdmin = async (req, res) => {
 
 export const getCurrentAdmin = async (req, res) => {
 	try {
-		const admin = await Admin.findById(req.auth.id).select('-password');
-		if (!admin) return res.status(404).json({ message: 'Admin not found' });
-		res.status(200).json({ admin });
+		// If this is a real Admin token, read from Admin model
+		if (req.auth?.type === 'admin') {
+			const admin = await Admin.findById(req.auth.id).select('-password');
+			if (!admin) return res.status(404).json({ message: 'Admin not found' });
+			return res.status(200).json({ admin });
+		}
+
+		// If the token came from an Employee with role 'admin', read from Employee model
+		if (req.auth?.type === 'employee' && req.auth?.role === 'admin') {
+			const employee = await Employee.findById(req.auth.id).select('-password');
+			if (!employee) return res.status(404).json({ message: 'Admin employee not found' });
+			// Normalize to `admin` response for frontend compatibility
+			return res.status(200).json({ admin: {
+				id: employee._id,
+				first_name: employee.first_name,
+				last_name: employee.last_name,
+				employee_id: employee.employee_id,
+				role: employee.role
+			}});
+		}
+
+		return res.status(403).json({ message: 'Admin only' });
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ message: 'Server error' });

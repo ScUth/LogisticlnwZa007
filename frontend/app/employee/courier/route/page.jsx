@@ -1,7 +1,7 @@
 "use client"
 
 import Sidebar, { SidebarItem } from "@/components/driversidebar"
-import { Play, CheckSquare, MapPin, Package } from "lucide-react"
+import { Play, CheckSquare, MapPin, Package, Truck } from "lucide-react"
 import { useRouter } from "next/navigation"
 import react from "react"
 

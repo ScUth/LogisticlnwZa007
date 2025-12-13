@@ -5,7 +5,8 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import locationRoutes from "./routes/locationRoutes.js";
-import courierRoutes from "./routes/courierRoutes.js";
+// import courierRoutes from "./routes/courierRoutes.js";s
+import adminRoutes from "./routes/adminRoutes.js";
 import InitializeDatabaseStructures from "./seed/seed.js";
 
 dotenv.config();
@@ -16,7 +17,6 @@ app.use(
   cors({
     origin: [
       process.env.FRONTEND_URL || "http://192.168.1.90:4060",
-      "http://kumtho.trueddns.com:33860",
       "http://kumtho.trueddns.com:33860",
     ],
     credentials: true,
@@ -41,8 +41,8 @@ app.use("/api/auth", authRoutes);
 // Location routes
 app.use("/api/locations", locationRoutes);
 
-// Admin: courier listing
-app.use("/api/admin/couriers", courierRoutes);
+// Admin routes
+app.use("/api/admin", adminRoutes);
 
 // connect DB + start
 const PORT = process.env.PORT || 4826;

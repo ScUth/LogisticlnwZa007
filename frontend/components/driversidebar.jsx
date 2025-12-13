@@ -63,7 +63,7 @@ export default function Sidebar({ children }) {
                     <ul className="flex-1 px-2 py-2 space-y-1">{children}</ul>
                 </SidebarContext.Provider>
                 <button onClick={handleProfileClick} className="hover:bg-amber-700">
-                    <div className="border-t flex p-3 items-center gap-3">
+                    <div className="border-t flex p-3 items-center gap-3 text-left">
                         <img
                             src="https://ui-avatars.com/api/?background=c7d2fe&color=3730a3&bold=true"
                             alt=""

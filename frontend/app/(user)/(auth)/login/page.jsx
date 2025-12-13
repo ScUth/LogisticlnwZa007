@@ -102,24 +102,24 @@ export default function Login() {
                         <div className="w-2/3 min-h-[350px] flex flex-col justify-start">
 
                             {isLogin ? (
-                                <div>
+                                <form onSubmit={handleLoginSubmit}>
                                     <input type="tel" placeholder="Phone" className="w-full mb-3 px-3 py-2 border rounded" value={phoneLogin} onChange={(e) => setPhoneLogin(e.target.value)} />
                                     <input type="password" placeholder="Password" className="w-full mb-3 px-3 py-2 border rounded" value={passwordLogin} onChange={(e) => setPasswordLogin(e.target.value)} />
-                                    <button className="w-full bg-blue-600 text-white py-2 rounded mt-2" onClick={handleLoginSubmit}>
+                                    <button className="w-full bg-blue-600 text-white py-2 rounded mt-2" type="submit">
                                         Login
                                     </button>
-                                </div>
+                                </form>
                             ) : (
-                                <div>
+                                <form onSubmit={handleRegisterSubmit}>
                                     <input type="text" placeholder="Name" className="w-full mb-3 px-3 py-2 border rounded" value={first_name} onChange={(e) => setName(e.target.value)} />
                                     <input type="text" placeholder="last_name" className="w-full mb-3 px-3 py-2 border rounded" value={last_name} onChange={(e) => setLast_name(e.target.value)} />
                                     <input type="tel" placeholder="Phone" className="w-full mb-3 px-3 py-2 border rounded" value={phone} onChange={(e) => setPhone(e.target.value)} />
                                     <input type="password" placeholder="Password" className="w-full mb-3 px-3 py-2 border rounded" value={password} onChange={(e) => setPassword(e.target.value)} />
                                     <input type="password" placeholder="Password Confirmation" className="w-full mb-3 px-3 py-2 border rounded" value={password_confirmation} onChange={(e) => setPasswordConfirmation(e.target.value)}/>
-                                    <button className="w-full bg-green-600 text-white py-2 rounded mt-2" onClick={handleRegisterSubmit}>
+                                    <button className="w-full bg-green-600 text-white py-2 rounded mt-2" type="submit">
                                         Register
                                     </button>
-                                </div>
+                                </form>
                             )}
                         </div>
                     </div>

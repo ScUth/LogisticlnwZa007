@@ -87,8 +87,13 @@ export default function EmployeeLogin() {
                             Sign In
                         </button>
                     </form>
-                    <div className="mt-4 text-sm text-gray-500">
-                        <a href="#" className="text-blue-600 hover:underline">Forgot password?</a>
+                    <div className="flex justify-between">
+                        <div className="mt-4 text-sm text-gray-500">
+                            <a href="/" className="text-blue-600 hover:underline">&lt; Back to Homepage</a>
+                        </div>
+                        <div className="mt-4 text-sm text-gray-500">
+                            <a href="#" className="text-blue-600 hover:underline">Forgot password?</a>
+                        </div>
                     </div>
                 </div>
             </div>

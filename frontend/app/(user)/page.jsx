@@ -63,6 +63,7 @@ export default function HomePage() {
               <button
                 className="text-white bg-brand hover:bg-brand-strong border border-gray-500 bg-blue-500 font-bold
                   focus:ring-4 focus:ring-brand-medium shadow-xs rounded-r-lg text-xs pl-3 px-3 right-1 hover:bg-blue-700"
+                  onClick={() => router.push("/track")}
               >
                 Track
               </button>

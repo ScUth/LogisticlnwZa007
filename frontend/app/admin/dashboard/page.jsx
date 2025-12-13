@@ -33,7 +33,7 @@ export default function adminDashboard() {
     ]
 
     return (
-        <div className="flex h-screen">
+        <div className="flex h-screen overflow-hidden">
             <Sidebar>
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" active/>
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')}/>
@@ -45,7 +45,7 @@ export default function adminDashboard() {
                 <SidebarItem icon={<Fullscreen />} text="Proof of Delivery Management" onClick={() => router.push('/admin/management/pod')}/>
             </Sidebar>
 
-            <main className="flex-1 p-6 bg-gray-50">
+            <main className="flex-1 p-6 bg-gray-50 overflow-auto">
                 <div className="font-semibold text-[30px]">
                     Dashboard Overview
                 </div>

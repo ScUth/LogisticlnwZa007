@@ -41,7 +41,7 @@ export default function AdminLogin() {
             <div className="w-full md:w-1/2 flex items-center justify-center bg-gray-50">
                 <Image src={TransportationPicture} alt="Courier" className="w-[80%] h-auto rounded-md object-cover" />
             </div>
-
+            
             <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-6">
                 <div className="w-full max-w-md">
                     <h1 className="text-2xl font-semibold mb-4">Admin Login</h1>
@@ -74,8 +74,13 @@ export default function AdminLogin() {
                             Sign In
                         </button>
                     </form>
-                    <div className="mt-4 text-sm text-gray-500">
-                        <a href="#" className="text-blue-600 hover:underline">Forgot password?</a>
+                    <div className="flex justify-between">
+                        <div className="mt-4 text-sm text-gray-500">
+                            <a href="/" className="text-blue-600 hover:underline">&lt; Back to Homepage</a>
+                        </div>
+                        <div className="mt-4 text-sm text-gray-500">
+                            <a href="#" className="text-blue-600 hover:underline">Forgot password?</a>
+                        </div>
                     </div>
                 </div>
             </div>

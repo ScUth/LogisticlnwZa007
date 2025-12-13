@@ -11,7 +11,7 @@ import {
   loginAdmin,
   getCurrentAdmin,
 } from "../controllers/authController.js";
-import { auth, requireSender, requireEmployee, requireAdmin } from "../middleware/auth.js";
+import { authSender, authEmployee, authAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -19,30 +19,30 @@ const router = express.Router();
 router.post("/login", loginUser);
 router.post("/register", registerUser);
 router.post("/change-password", changePassword);
-router.post("/logout", auth, (req, res) => {
+router.post("/logout", authSender, (req, res) => {
   res.clearCookie("accessToken");
   res.clearCookie("refreshToken");
   res.status(200).json({ message: "Logged out successfully" });
 });
-router.get("/me", auth, requireSender, getCurrentUser);
+router.get("/me", authSender, getCurrentUser);
 
 // employee auth routes
 router.post("/employee/login", loginEmployee);
 router.post("/employee/register", registerEmployee);
-router.post("/employee/logout", auth, (req, res) => {
+router.post("/employee/logout", authEmployee, (req, res) => {
   res.clearCookie("employeeAccessToken");
   res.clearCookie("employeeRefreshToken");
   res.status(200).json({ message: "Logged out successfully" });
 });
-router.get("/employee/me", auth, requireEmployee, getCurrentEmployee);
+router.get("/employee/me", authEmployee, getCurrentEmployee);
 
 // admin auth routes
 router.post("/admin/login", loginAdmin);
-router.post("/admin/logout", auth, (req, res) => {
+router.post("/admin/logout", authAdmin, (req, res) => {
   res.clearCookie("adminAccessToken");
   res.clearCookie("adminRefreshToken");
   res.status(200).json({ message: "Logged out successfully" });
 });
-router.get("/admin/me", auth, requireAdmin, getCurrentAdmin);
+router.get("/admin/me", authAdmin, getCurrentAdmin);
 
 export default router;

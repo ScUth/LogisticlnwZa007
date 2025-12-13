@@ -15,7 +15,7 @@ export const AdminAuthProvider = ({ children }) => {
             const response = await fetch(`${API_BASE_URL}/api/auth/admin/me`, {
                 credentials: 'include',
             });
-
+            // console.log('Fetch current admin response:', response);
             if (response.ok) {
                 const data = await response.json();
                 if (data.admin) {
