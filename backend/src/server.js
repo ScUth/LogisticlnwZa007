@@ -5,7 +5,8 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import locationRoutes from "./routes/locationRoutes.js";
-// import courierRoutes from "./routes/courierRoutes.js";s
+import pickupRequestRoutes from "./routes/pickupRequestRoutes.js";
+import pickupRequestItemRoutes from "./routes/pickupRequestItemRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import InitializeDatabaseStructures from "./seed/seed.js";
 
@@ -37,6 +38,12 @@ app.get("/api/health", (req, res) => {
 
 // Auth routes
 app.use("/api/auth", authRoutes);
+
+// Pickup Request routes
+app.use("/api/pickup-requests", pickupRequestRoutes);
+
+// Pickup Request Item routes
+app.use("/api/pickup-request-items", pickupRequestItemRoutes);
 
 // Location routes
 app.use("/api/locations", locationRoutes);

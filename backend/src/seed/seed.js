@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt"
 import { Sender, Recipient, Employee, Admin } from "../models/people.js";
+import { Vehicle } from "../models/operations.js";
 
 async function InitializeDatabaseStructures() {
     try {
@@ -11,9 +12,9 @@ async function InitializeDatabaseStructures() {
             bcrypt.hash("111111", ROUNDS),
             bcrypt.hash('111111', ROUNDS)
         ]);
-        
-        const Employees = await Employee.find({ employee_id: { $in: ["EMP0001", "EMP0002", "EMP0003"] } }, {_id: 1}).distinct("employee_id");
-       if (Employees.length > 0) {
+
+        const Employees = await Employee.find({ employee_id: { $in: ["EMP0001", "EMP0002", "EMP0003"] } }, { _id: 1 }).distinct("employee_id");
+        if (Employees.length > 0) {
             console.log("Seed data already exists, dropping existing seed data", Employees);
             await Employee.deleteMany({ employee_id: { $in: Employees } });
         }
@@ -57,7 +58,67 @@ async function InitializeDatabaseStructures() {
                 employee_id: "ADMIN001",
             });
         }
-        
+
+        const vehicleExist = await Vehicle.findOne({ plate_no: ["1กข4567", "2ขค8901", "701234", "715555", "1กท999", "ผก3456"] });
+        if (!vehicleExist) {
+            await Vehicle.create([
+                {
+                    plate_raw: "1กข 4567",
+                    plate_no: "1กข4567", // derived via normalizePlateNo
+                    province: "กรุงเทพมหานคร",
+                    vehicle_type: "pickup",
+                    capacity_kg: 1000,
+                    Owner: "Company",
+                    assigned_courier: null // Ready to be assigned
+                },
+                {
+                    plate_raw: "2ขค 8901",
+                    plate_no: "2ขค8901",
+                    province: "นนทบุรี",
+                    vehicle_type: "pickup",
+                    capacity_kg: 1200,
+                    Owner: "Company",
+                    assigned_courier: null
+                },
+                {
+                    plate_raw: "70-1234",
+                    plate_no: "701234", // Dashes removed by normalizer
+                    province: "ปทุมธานี",
+                    vehicle_type: "truck",
+                    capacity_kg: 5000,
+                    Owner: "Company",
+                    assigned_courier: null
+                },
+                {
+                    plate_raw: "71-5555",
+                    plate_no: "715555",
+                    province: "สมุทรปราการ",
+                    vehicle_type: "truck",
+                    capacity_kg: 8000,
+                    Owner: "Company",
+                    assigned_courier: null
+                },
+                {
+                    plate_raw: "1กท 999",
+                    plate_no: "1กท999",
+                    province: "เชียงใหม่",
+                    vehicle_type: "motorcycle",
+                    capacity_kg: 40,
+                    Owner: "Company",
+                    assigned_courier: null
+                },
+                {
+                    plate_raw: "ผก 3456",
+                    plate_no: "ผก3456",
+                    province: "ชลบุรี",
+                    vehicle_type: "pickup",
+                    capacity_kg: 1100,
+                    Owner: "Company",
+                    assigned_courier: null
+                }
+            ])
+        }
+
         console.log("Seed data inserted successfully");
     } catch (error) {
         console.error("Error seeding database:", error.message);

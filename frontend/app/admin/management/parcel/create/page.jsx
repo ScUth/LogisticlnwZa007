@@ -13,21 +13,15 @@ export default function hubManagement() {
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')}/>
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')}/>
                 <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')}/>
-                <SidebarItem icon={<Package />} text="Parcel Management" active/>
+                <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')}/>
                 <SubSidebarItem text="Parcel List" onClick={() => router.push('/admin/management/parcel/list')} />
-                <SubSidebarItem text="Create/Update Parcel" onClick={() => router.push('/admin/management/parcel/create')} />
+                <SubSidebarItem text="Create/Update Parcel" active />
                 <SubSidebarItem text="Parcel Detail" onClick={() => router.push('/admin/management/parcel/details')} />
                 <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')}/>
                 <SidebarItem icon={<Truck />} text="Courier Management" onClick={() => router.push('/admin/management/courier')}/>
                 <SidebarItem icon={<Boxes />} text="Scan Event Management" onClick={() => router.push('/admin/management/scan_event')}/>
                 <SidebarItem icon={<Fullscreen />} text="Proof of Delivery Management" onClick={() => router.push('/admin/management/pod')}/>
             </Sidebar>
-
-            <main className="flex-1 p-6 bg-gray-50 overflow-auto">
-                <div className="font-semibold text-[30px]">
-                    Parcel Management
-                </div>
-            </main>
         </div>
     )
 }

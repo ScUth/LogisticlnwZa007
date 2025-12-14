@@ -16,32 +16,123 @@ import {
 } from "@/components/ui/select";
 import { ShipmentCart } from "@/components/shipment/cart";
 import { ShipmentForm } from "@/components/shipment/shipment-form";
+import { useShipment } from "@/context/shipmentContext";
+import { usePickupRequest } from "@/lib/use-pickup-request";
 
 export default function ShipmentPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [receiverFirstName, setReceiverFirstName] = useState("");
-  const [receiverLastName, setReceiverLastName] = useState("");
-  const [receiverContact, setReceiverContact] = useState("");
-  const [receiverAddress, setReceiverAddress] = useState("");
-  const [receiverSubDistrict, setReceiverSubDistrict] = useState("");
-
   const {
     locations,
-    loading,
-    error,
+    loading: locationLoading,
+    error: locationError,
     locBySenderMessage,
-    fetchLocationsBySenderId,
-    createLocation,
-    updateLocation,
+    fetchLocationsBySenderId, // fetch locations function
+    createLocation, // fetch create location function
+    updateLocation, // fetch update location function
     usedLocation,
-    fetchSenderUsedLocation,
+    fetchSenderUsedLocation, // fetch used location function
   } = useLocation(user?._id);
+
+  const {
+    draft, // request draft data
+    items, // items belong to the request
+    loading: pickupRequestLoading,
+    error: pickupRequestError,
+    getOrCreateDraft, // fetch get or create draft function
+    addItem, // fetch add item to request function
+    getItems, // fetch items belong to the request function
+    updateItem, // fetch update item function
+    deleteItem, // fetch delete item function
+    submitRequest, // fetch submit pickup request function
+  } = usePickupRequest();
+
+  const {
+    senderInfo,
+    setSenderInfo,
+    shipmentDrafts, // not used currently
+    setShipmentDrafts,
+    shipmentDraftData, // current shipment draft data
+    setShipmentDraftData,
+  } = useShipment();
+
+  // default anatomy
+  // const [senderInfo, setSenderInfo] = useState({
+  //   senderFirstName: "",
+  //   senderLastName: "",
+  //   senderContact: "",
+  //   senderAddressText: "",
+  //   senderSubDistrict: "",
+  // });
+  // const [shipmentDraftData, setShipmentDraftData] = useState({
+  //   recieverFirstName: "",
+  //   recieverLastName: "",
+  //   recieverContact: "",
+  //   recieverAddressText: "",
+  //   recieverSubDistrict: "",
+  //   packageWeight: "",
+  //   packageSize: "",
+  //   quantity: 1,
+  // });
+
+  // update getOrCreateDraft when usedLocation changes
+  useEffect(() => {
+    if (usedLocation?.address_text && usedLocation?.sub_district) {
+      getOrCreateDraft(usedLocation);
+    }
+  }, [usedLocation, getOrCreateDraft]);
+
+  const handleSubmitShipmentDraft = async (e) => {
+    e.preventDefault();
+    
+    if (!draft?._id) {
+      console.error("No draft request found");
+      return;
+    }
+
+    try {
+      // Map shipmentDraftData to backend expected format
+      const itemData = {
+        recipient: {
+          first_name: shipmentDraftData.recieverFirstName,
+          last_name: shipmentDraftData.recieverLastName,
+          phone: shipmentDraftData.recieverContact,
+          address_text: shipmentDraftData.recieverAddressText,
+          sub_district: shipmentDraftData.recieverSubDistrict,
+        },
+        estimated_weight: Number(shipmentDraftData.estimatedWeight),
+        size: shipmentDraftData.size,
+        quantity: Number(shipmentDraftData.quantity),
+      };
+
+      // add item (fetch addItem) to the draft
+      await addItem(draft._id, itemData);
+      
+      // reset shipmentDraftData
+      setShipmentDraftData({
+        recieverFirstName: "",
+        recieverLastName: "",
+        recieverContact: "",
+        recieverAddressText: "",
+        recieverSubDistrict: "",
+        estimatedWeight: "",
+        size: "",
+        quantity: 1,
+      });
+      
+      // Close the form after successful submission
+      setOpenShipmentForm(false);
+    } catch (error) {
+      console.error("Error adding item:", error);
+      // Optionally show error to user
+    }
+  }
 
   const [openCreateLocationDialog, setOpenCreateLocationDialog] =
     useState(false);
   const [openListLocationDialog, setOpenListLocationDialog] = useState(false);
+  const [openShipmentForm, setOpenShipmentForm] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -75,12 +166,6 @@ export default function ShipmentPage() {
     "Chatuchak",
   ];
 
-  // set sender name when user data is available
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    router.push("/shipment/step2");
-  };
-
   const handleSetPickupLocation = async (e) => {
     e.preventDefault();
     if (!usedLocation) {
@@ -94,10 +179,10 @@ export default function ShipmentPage() {
   return (
     <div>
       <NavigationBar />
-      <div className="flex justify-center gap-4 mt-20 w-3/4 max-w-[1200px] mx-auto">
+      <div className="flex justify-center gap-4 mt-10 mb-20 w-3/4 max-w-[1200px] mx-auto">
         <div className="space-y-4 flex-[2]">
           <div className="bg-white border rounded-lg shadow-md">
-            <form className="flex flex-col p-4">
+            <div className="flex flex-col px-4 py-2">
               <label className="mb-2 font-semibold">Sender Address</label>
 
               <CreateLocationDialog
@@ -125,7 +210,7 @@ export default function ShipmentPage() {
                 }}
               />
 
-              <div className="flex flex-row p-2 h-[100px] text-gray-400">
+              <div className="flex flex-row p-2 text-gray-400">
                 {/* if no used location, show "No saved sender address found. Please create one." */}
                 {/* else show html used location */}
                 {usedLocation ? (
@@ -152,12 +237,30 @@ export default function ShipmentPage() {
                   </p>
                 </button>
               </div>
-            </form>
+            </div>
           </div>
-          <ShipmentForm/>
+          {openShipmentForm ? (
+            <ShipmentForm 
+              setOpenShipmentForm={setOpenShipmentForm}
+              onSubmitShipmentDraft={handleSubmitShipmentDraft}
+              shipmentDraftData={shipmentDraftData}
+              setShipmentDraftData={setShipmentDraftData}
+            />
+          ) : (
+            <div className="flex justify-end">
+              <button
+                onClick={() => setOpenShipmentForm(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                Create Shipment
+              </button>
+            </div>
+          )}
         </div>
         <div className="flex-1 ">
-          <ShipmentCart />
+          <ShipmentCart 
+            usedLocation={usedLocation}
+          />
         </div>
       </div>
     </div>

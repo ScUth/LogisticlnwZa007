@@ -139,7 +139,7 @@ export default function CourierDetail() {
                                         <div className="bg-white rounded p-6 w-full max-w-2xl">
                                             <div className="flex items-center justify-between mb-3">
                                                 <h2 className="text-lg font-semibold">Edit Courier</h2>
-                                                <button onClick={() => setEditing(false)} className="px-2 py-1 border rounded">Close</button>
+                                                {/* <button onClick={() => setEditing(false)} className="px-2 py-1 border rounded">Close</button> */}
                                             </div>
                                             <CourierForm initialData={courier} onCancel={() => setEditing(false)} onSubmit={(payload) => {
                                                 console.log('Update payload', payload);

@@ -5,6 +5,7 @@ import { createContext, useContext, useState } from "react";
 const ShipmentContext = createContext();
 
 export const ShipmentProvider = ({ children }) => {
+  const [shipmentDrafts, setShipmentDrafts] = useState([]);
   const [senderInfo, setSenderInfo] = useState({
     senderFirstName: "",
     senderLastName: "",
@@ -12,15 +13,14 @@ export const ShipmentProvider = ({ children }) => {
     senderAddressText: "",
     senderSubDistrict: "",
   });
-  const [shipments, setShipments] = useState([]);
-  const [shipmentData, setShipmentData] = useState({
+  const [shipmentDraftData, setShipmentDraftData] = useState({
     recieverFirstName: "",
     recieverLastName: "",
     recieverContact: "",
     recieverAddressText: "",
     recieverSubDistrict: "",
-    packageWeight: "",
-    packageSize: "",
+    estimatedWeight: 0,
+    size: "",
     quantity: 1,
   });
 
@@ -29,10 +29,10 @@ export const ShipmentProvider = ({ children }) => {
       value={{
         senderInfo,
         setSenderInfo,
-        shipments,
-        setShipments,
-        shipmentData,
-        setShipmentData,
+        shipmentDrafts,
+        setShipmentDrafts,
+        shipmentDraftData,
+        setShipmentDraftData,
       }}
     >
       {children}

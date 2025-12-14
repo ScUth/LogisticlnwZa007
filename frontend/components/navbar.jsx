@@ -49,7 +49,7 @@ export function NavigationBar() {
 	}, []);
 
 	return (
-		<nav className="bg-amber-600 sticky w-full z-20 top-0 start-0 border-b border-default">
+		<nav className="bg-gradient-to-r from-amber-600 to-amber-500 sticky w-full z-20 top-0 start-0 border-b border-default">
 			<div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-3">
 				<a href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
 					<Image src={logo} alt="Logo" className="flex w-auto h-9" />

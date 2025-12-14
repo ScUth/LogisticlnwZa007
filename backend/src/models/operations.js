@@ -15,35 +15,11 @@ const PickupRequestSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "assigned", "in_progress", "picked_up", "canceled"],
-      default: "pending",
+      enum: ["draft", "pending", "assigned", "in_progress", "completed", "canceled"],
+      default: "draft",
     },
 
     assigned_courier: { type: ObjectId, ref: "Employee" }, // will be assigned when courier accepts
-    items: [
-      {
-        recipient: {
-          first_name: { type: String, required: true },
-          last_name: { type: String, required: true },
-          phone: { type: String, required: true },
-          address_text: { type: String, required: true },
-          sub_district: { type: String, required: true },
-        },
-        estimated_weight: { type: Number, required: true },
-        size: {
-          type: String,
-          enum: ["small", "medium", "large"], // range, not exact measurements, just for choosing vehicle
-          required: true,
-        },
-        status: {
-          type: String,
-          enum: ["draft", "confirmed", "parcel_created", "canceled"], 
-          default: "draft",
-        },
-        parcel_id: { type: ObjectId, ref: "Parcel", default: null },
-      },
-    ],
-
   },
   { timestamps: { createdAt: "requested_at", updatedAt: "updated_at" } }
 );
@@ -52,6 +28,42 @@ const PickupRequestSchema = new mongoose.Schema(
 PickupRequestSchema.index({ requester: 1, updated_at: -1 });
 PickupRequestSchema.index({ assigned_courier: 1, status: 1, updated_at: -1 });
 PickupRequestSchema.index({ status: 1, updated_at: -1 });
+PickupRequestSchema.index(
+  { requester: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: "draft" } }
+);
+
+
+/*========== PICKUP REQUEST ITEM ==========*/
+const PickupRequestItemSchema = new mongoose.Schema(
+  {
+    // point to PickupRequest instead of array of items for easier querying
+    recipient: {
+      first_name: { type: String, required: true },
+      last_name: { type: String, required: true },
+      phone: { type: String, required: true },
+      address_text: { type: String, required: true },
+      sub_district: { type: String, required: true },
+    },
+    estimated_weight: { type: Number, required: true },
+    quantity: { type: Number, required: true, default: 1, min: 1 },
+    size: {
+      type: String,
+      enum: ["small", "medium", "large"], // range, not exact measurements, just for choosing vehicle
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["draft", "confirmed", "parcel_created", "canceled"],
+      default: "draft",
+    },
+    parcel_id: { type: ObjectId, ref: "Parcel", default: null },
+    request_id: { type: ObjectId, ref: "PickupRequest", required: true },
+  },
+  { timestamps: {createdAt: "created_at", updatedAt: "updated_at"} }
+);
+
+PickupRequestItemSchema.index({ request_id: 1, status: 1 });
 
 /*========== PARCEL ==========*/
 const ParcelSchema = new mongoose.Schema(
@@ -227,22 +239,37 @@ const provinceList = [
 
 const VehicleSchema = new mongoose.Schema({
   plate_raw: { type: String, required: true, trim: true }, // what user typed / what you display
-
   plate_no: { type: String, required: true, trim: true },  // normalized plate number ONLY (no province)
   province: { type: String, enum: provinceList, required: true },
-  vehicle_type: { type: String, enum: ["bike", "motorcycle", "van", "truck"], required: true },
+  vehicle_type: { type: String, enum: ["pickup", "motorcycle", "truck"], required: true },
   capacity_kg: { type: Number, required: true },
-
+  Owner: { type: String, required: true, enum: ["Company", "Courier"]},
   assigned_courier: { type: ObjectId, ref: "Employee" },
 }, { timestamps: true });
 
 function normalizePlateNo(input) {
   "กข123"
   if (!input) return "";
-  return input
-    .toUpperCase()
-    .replace(/[^ก-ฮA-Z0-9]/g, "") // remove spaces, dashes, etc.
-    .trim();
+  // remove spaces, dashes, etc. 71-0898 -> 710898, กข 123 -> กข123
+  return input.replace(/[\s\-]/g, "").toUpperCase();
+}
+
+function isValidPlateKey(plateNo) {
+  if (!plateNo) return false;
+
+  // 1) Digits-only (after normalization). Example: "71-0898" -> "710898"
+  // choose a reasonable length range for your system:
+  if (/^[0-9]{4,8}$/.test(plateNo)) return true;
+
+  // 2) Letters then digits (Thai/English)
+  // e.g. "กข123", "AB1234"
+  if (/^[ก-ฮA-Z]{1,3}[0-9]{1,4}$/.test(plateNo)) return true;
+
+  // 3) Optional: leading digits then letters then digits (if you want to support it)
+  // e.g. "1กข1234"
+  if (/^[0-9]{1,2}[ก-ฮA-Z]{1,3}[0-9]{1,4}$/.test(plateNo)) return true;
+
+  return false;
 }
 
 VehicleSchema.pre("validate", function (next) {
@@ -266,6 +293,12 @@ VehicleSchema.index({ assigned_courier: 1 });
 
 const Parcel = mongoose.model("Parcel", ParcelSchema);
 const Route = mongoose.model("Route", RouteSchema);
+const PickupRequest = mongoose.model("PickupRequest", PickupRequestSchema);
+const PickupRequestItem = mongoose.model(
+  "PickupRequestItem",
+  PickupRequestItemSchema
+);
+const Vehicle = mongoose.model("Vehicle", VehicleSchema);
 const ParcelRouteAssignment = mongoose.model(
   "ParcelRouteAssignment",
   ParcelRouteAssignmentSchema
@@ -285,4 +318,7 @@ export {
   ParcelRouteAssignment,
   ParcelScanEvent,
   ProofOfDelivery,
+  PickupRequest,
+  PickupRequestItem,
+  Vehicle,
 };

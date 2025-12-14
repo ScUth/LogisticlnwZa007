@@ -1,12 +1,16 @@
 "use client"
 
 import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, SquarePen, SquarePlus, Truck, User, Warehouse } from "lucide-react"
+import HubCreate from "@/components/CreateHub"
+import HubEdit from "@/components/EditHub"
 import React from "react"
 import Sidebar, { SidebarItem } from "@/components/AdminSidebar"
 import { useRouter } from "next/navigation"
 
 export default function hubManagement() {
     const router = useRouter()
+    const [openCreate, setOpenCreate] = React.useState(false)
+    const [openEdit, setOpenEdit] = React.useState(false)
     const [hub, setHub] = React.useState([
         { hub_name: 'Hub A', address_text: 'หมูทอด St', sub_district: 'แม่หมูทอด', status: 'Active' },
         { hub_name: 'Hub B', address_text: 'หมูย่าง St', sub_district: 'แม่หมูย่าง', status: 'Not Active' },
@@ -15,6 +19,7 @@ export default function hubManagement() {
         { hub_name: 'Hub E', address_text: 'หมูต้ม St', sub_district: 'แม่หมูต้ม', status: 'Not Active' },
         { hub_name: 'Hub F', address_text: 'หมูตุ๋น St', sub_district: 'แม่หมูตุ๋น', status: 'Active' },
     ])
+    const [selectedHub, setSelectedHub] = React.useState(null)
 
     const activate = (hub_name) => {
         setHub((prev) => prev.map(h => h.hub_name === hub_name ? { ...h, status: 'Active' } : h))
@@ -22,6 +27,14 @@ export default function hubManagement() {
 
     const deactivate = (hub_name) => {
         setHub((prev) => prev.map(h => h.hub_name === hub_name ? { ...h, status: 'Not Active' } : h))
+    }
+
+    const addHub = (newHub) => {
+        setHub((prev) => [...prev, newHub])
+    }
+
+    const updateHub = (updatedHub) => {
+        setHub((prev) => prev.map(h => h.hub_name === updatedHub.originalHubName ? { hub_name: updatedHub.hub_name, address_text: updatedHub.address_text, sub_district: updatedHub.sub_district, status: updatedHub.status } : h))
     }
 
     return (
@@ -52,13 +65,10 @@ export default function hubManagement() {
                             </div>
                         </div>
 
-                        <div className="flex flex-row items-center gap-2 ">
+                        <div className="flex flex-row items-center gap-2">
                             <div>
-                                <button className="flex flex-row gap-2 px-2 py-1 text-[14px] text-white bg-amber-600 rounded-lg"><SquarePlus />Create Hub</button>
-                            </div>
-
-                            <div>
-                                <button className="flex flex-row gap-2 px-2 py-1 text-[14px] text-white bg-amber-600 rounded-lg"><SquarePen />Edit Hub</button>
+                                <button onClick={() => setOpenCreate(true)} className="flex flex-row gap-2 px-2 py-1 text-[14px] text-white bg-amber-600 rounded-lg"><SquarePlus />Create Hub</button>
+                                <HubCreate open={openCreate} onClose={() => setOpenCreate(false)} onCreate={addHub} />
                             </div>
                         </div>
                     </div>
@@ -75,9 +85,16 @@ export default function hubManagement() {
                                     <div className={`text-[12px] px-2 py-1 rounded-full ${h.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{h.status}</div>
                                     <button onClick={() => activate(h.hub_name)} disabled={h.status !== 'Not Active'} className="text-sm px-2 py-1 rounded bg-lime-600 text-white disabled:bg-gray-200">Activate</button>
                                     <button onClick={() => deactivate(h.hub_name)} disabled={h.status !== 'Active'} className="text-sm px-2 py-1 rounded bg-red-600 text-white disabled:bg-gray-200">Deactivate</button>
+                                    <button 
+                                        onClick={() => {
+                                            setSelectedHub(h)
+                                            setOpenEdit(true)
+                                        }}
+                                        className="flex flex-row gap-2 px-2 py-1 text-[14px] text-white bg-amber-600 rounded-lg"><SquarePen />Edit Hub</button>
                                 </div>
                             </div>
                         ))}
+                        <HubEdit open={openEdit} onClose={() => setOpenEdit(false)} hub={selectedHub} onUpdate={updateHub} />
                     </div>
                 </div>
             </main>

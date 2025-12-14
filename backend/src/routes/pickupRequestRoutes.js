@@ -1,0 +1,17 @@
+import express from 'express';
+import {
+  getOrCreateDraftPickupRequest,
+  addItemToPickupRequest,
+  submitPickupRequest,
+  getPickupRequestItems, 
+} from '../controllers/pickupRequestController.js';
+import { authSender } from '../middleware/auth.js';
+
+const router = express.Router();
+
+router.post('/draft', authSender, getOrCreateDraftPickupRequest);
+router.post('/:requestId/submit', authSender, submitPickupRequest);
+router.post('/:requestId/items', authSender, addItemToPickupRequest);
+router.get('/:requestId/items', authSender, getPickupRequestItems);
+
+export default router;

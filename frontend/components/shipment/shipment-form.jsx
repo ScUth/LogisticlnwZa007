@@ -8,25 +8,45 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { useShipment } from "@/context/shipmentContext";
 
-export function ShipmentForm() {
-  const [formData, setFormData] = useState({
-    recieverFirstName: "",
-    recieverLastName: "",
-    recieverContact: "",
-    recieverAddressText: "",
-    recieverSubDistrict: "",
+export function ShipmentForm({ 
+  setOpenShipmentForm, 
+  onSubmitShipmentDraft, 
+  shipmentDraftData, 
+  setShipmentDraftData,
+}) {
 
-    size: "",
-    estimatedWeight: "",
-    // number of items
-    quantity: 1,
-  });
+  // default anatomy
+  // const [senderInfo, setSenderInfo] = useState({
+  //   senderFirstName: "",
+  //   senderLastName: "",
+  //   senderContact: "",
+  //   senderAddressText: "",
+  //   senderSubDistrict: "",
+  // });
+  // const [shipmentDraftData, setShipmentDraftData] = useState({
+  //   recieverFirstName: "",
+  //   recieverLastName: "",
+  //   recieverContact: "",
+  //   recieverAddressText: "",
+  //   recieverSubDistrict: "",
+  //   packageWeight: 0,
+  //   packageSize: "",
+  //   quantity: 1,
+  // });
+
+  const handleSubmitForm = async (e) => {
+    e.preventDefault();
+    // check weight and quantity input
+    console.log("Submitting shipment draft:", shipmentDraftData);
+    await onSubmitShipmentDraft(e);
+  }; 
 
   // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({
+    setShipmentDraftData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
@@ -35,8 +55,8 @@ export function ShipmentForm() {
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Process formData here
-    console.log("Form submitted:", formData);
+    // Process shipmentDraftData here
+    console.log("Form submitted:", shipmentDraftData);
   };
 
   const sub_district_options = [
@@ -47,16 +67,25 @@ export function ShipmentForm() {
     "Chatuchak",
   ];
 
+  // new packageSizes with descriptions
+  const packageSizesWithDesc = [
+    { size: "Small", desc: "< 14 x 20 x 6 cm" },
+    { size: "Medium", desc: "< 40 x 45 x 26 cm" },
+    { size: "Large", desc: "> 150 x 200 x 150 cm" },
+  ];
+
   return (
     <div className="w-full">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmitForm}
         className="bg-white p-6 rounded-lg shadow-md"
       >
         <h1 className="text-center text-2xl text-gray-700 font-bold mb-6">
           Shipment Form
         </h1>
-        <h2 className="text-lg text-gray-600 mb-4">Receiver Information</h2>
+        <h2 className="text-lg font-bold text-gray-600 mb-4">
+          Receiver Information
+        </h2>
         <div className="flex flex-row gap-4">
           <div className="flex flex-[2.5] flex-row gap-4 w-full">
             <div className="">
@@ -66,7 +95,7 @@ export function ShipmentForm() {
               <input
                 type="text"
                 name="recieverFirstName"
-                value={formData.recieverFirstName}
+                value={shipmentDraftData.recieverFirstName}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
                 required
@@ -79,7 +108,7 @@ export function ShipmentForm() {
               <input
                 type="text"
                 name="recieverLastName"
-                value={formData.recieverLastName}
+                value={shipmentDraftData.recieverLastName}
                 onChange={handleChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
                 required
@@ -93,7 +122,7 @@ export function ShipmentForm() {
             <input
               type="text"
               name="recieverContact"
-              value={formData.recieverContact}
+              value={shipmentDraftData.recieverContact}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded-md"
               required
@@ -108,7 +137,7 @@ export function ShipmentForm() {
             <input
               type="text"
               name="recieverAddressText"
-              value={formData.recieverAddressText}
+              value={shipmentDraftData.recieverAddressText}
               onChange={handleChange}
               className="w-full p-2 border border-gray-300 rounded-md"
               required
@@ -120,17 +149,15 @@ export function ShipmentForm() {
             </label>
             <Select
               onValueChange={(value) =>
-                setFormData((prevData) => ({
+                setShipmentDraftData((prevData) => ({
                   ...prevData,
                   recieverSubDistrict: value,
                 }))
               }
-              value={formData.recieverSubDistrict}
+              value={shipmentDraftData.recieverSubDistrict}
             >
               <SelectTrigger className="w-full mt-[2px]">
-                <SelectValue
-                  placeholder="Select a sub district"
-                />
+                <SelectValue placeholder="SELECT" />
               </SelectTrigger>
               <SelectContent>
                 {sub_district_options.map((option) => (
@@ -142,8 +169,145 @@ export function ShipmentForm() {
             </Select>
           </div>
         </div>
+        <h2 className="text-lg font-bold text-gray-600 mb-4">
+          Package Information
+        </h2>
+        <div className="flex flex-wrap gap-4 mb-6">
+          {packageSizesWithDesc.map(({ size, desc }) => (
+            <div
+              key={size}
+              className={`flex-1 min-w-[150px] p-2 border rounded-md text-center cursor-pointer
+                ${
+                  shipmentDraftData.size === size.toLowerCase()
+                    ? "border-amber-500 bg-orange-100"
+                    : "border-gray-300"
+                }
+                ${
+                  size === "Small"
+                    ? "order-1 basis-full lg:basis-auto lg:order-none" // mobile: full width + first
+                    : size === "Medium"
+                    ? "order-2 lg:order-none" // mobile: second
+                    : "order-3 lg:order-none" // mobile: third
+                }`}
+              onClick={() =>
+                setShipmentDraftData((prev) => ({
+                  ...prev,
+                  size: size.toLowerCase(),
+                }))
+              }
+            >
+              <h3 className="text-md font-medium mb-2">{size}</h3>
+              <p className="text-sm text-gray-600">{desc}</p>
+            </div>
+          ))}
+        </div>
 
-        <button type="submit">Submit</button>
+        <div className="flex flex-row flex-wrap gap-4 mb-6">
+          <div className="flex-1 min-w-[250px]">
+            <label className="mb-2 text-sm font-medium text-gray-700">
+              Estimated Weight (grams)
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setShipmentDraftData((prevData) => ({
+                    ...prevData,
+                    estimatedWeight: Math.max(
+                      0,
+                      (parseInt(prevData.estimatedWeight) || 0) - 100
+                    ),
+                  }))
+                }
+                className="w-[60px] px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
+              >
+                -100
+              </button>
+              <input
+                type="number"
+                name="estimatedWeight"
+                value={shipmentDraftData.estimatedWeight}
+                onChange={handleChange}
+                className="flex-1 p-2 border border-gray-300 rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                min={0}
+                required
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setShipmentDraftData((prevData) => ({
+                    ...prevData,
+                    estimatedWeight:
+                      (parseInt(prevData.estimatedWeight) || 0) + 100,
+                  }))
+                }
+                className="w-[60px] px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
+              >
+                +100
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="mb-2 text-sm font-medium text-gray-700">
+              Quantity
+            </label>
+            <div className="flex gap-2 items-center">
+              <button
+                type="button"
+                onClick={() =>
+                  setShipmentDraftData((prevData) => ({
+                    ...prevData,
+                    quantity: Math.max(
+                      1,
+                      (parseInt(prevData.quantity) || 1) - 1
+                    ),
+                  }))
+                }
+                className="size-[42px] px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
+              >
+                -1
+              </button>
+              <input
+                type="number"
+                name="quantity"
+                value={shipmentDraftData.quantity}
+                onChange={handleChange}
+                className="flex-1 p-2 border border-gray-300 rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                min={1}
+                required
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setShipmentDraftData((prevData) => ({
+                    ...prevData,
+                    quantity: (parseInt(prevData.quantity) || 1) + 1,
+                  }))
+                }
+                className="size-[42px] px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
+              >
+                +1
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* create request, add to cart, or cancel */}
+        <div className="flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={() => setOpenShipmentForm(false)}
+            className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-md"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md"
+          >
+            Create Shipment
+          </button>
+        </div>
       </form>
     </div>
   );
