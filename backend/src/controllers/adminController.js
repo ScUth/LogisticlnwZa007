@@ -1,5 +1,45 @@
-import { Employee } from '../models/people.js';
-import { Route, Parcel, ParcelRouteAssignment, ProofOfDelivery, Vehicle } from '../models/operations.js';
+import { Employee, Sender, Recipient } from '../models/people.js';
+import { Route, Parcel, ParcelRouteAssignment, ProofOfDelivery, Vehicle, ParcelScanEvent } from '../models/operations.js';
+import { Hub } from '../models/location.js';
+import mongoose from 'mongoose';
+import bcrypt from 'bcrypt';
+
+// ------------------------------------------------------------------- RECIPIENT ------------------------------------------------------------------- //
+// GET /api/admin/recipients
+export const listRecipients = async (req, res) => {
+	try {
+		const { search, owner } = req.query;
+		const q = {};
+		if (search) {
+			const regex = new RegExp(search, 'i');
+			q.$or = [{ first_name: regex }, { last_name: regex }, { phone: regex }, { address_text: regex }];
+		}
+		if (owner) q.owner = owner;
+		const recipients = await Recipient.find(q).select('first_name last_name phone address_text sub_district owner').lean();
+		return res.json({ recipients });
+	} catch (err) {
+		console.error('List recipients error:', err);
+		return res.status(500).json({ message: 'Failed to fetch recipients', error: err.message });
+	}
+};
+// ------------------------------------------------------------------- SENDER ------------------------------------------------------------------- //
+// GET /api/admin/senders
+export const listSenders = async (req, res) => {
+	try {
+		const { search } = req.query;
+		const q = {};
+		if (search) {
+			const regex = new RegExp(search, 'i');
+			q.$or = [{ first_name: regex }, { last_name: regex }, { phone: regex }];
+		}
+		const senders = await Sender.find(q).select('first_name last_name phone').lean();
+		return res.json({ senders });
+	} catch (err) {
+		console.error('List senders error:', err);
+		return res.status(500).json({ message: 'Failed to fetch senders', error: err.message });
+	}
+};
+// ------------------------------------------------------------------- COURIER ------------------------------------------------------------------- //
 
 // GET /api/admin/couriers
 export const listCouriers = async (req, res) => {
@@ -93,302 +133,204 @@ export const updateCourierActive = async (req, res) => {
 	}
 };
 
+// POST /api/admin/couriers
 export const createCourier = async (req, res) => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+	const session = await mongoose.startSession();
+	session.startTransaction();
 
-    try {
-        const { 
-            first_name, 
-            last_name, 
-            phone, 
-            employee_id, 
-            role = 'courier',
-            active = true,
-            vehicle_type = 'None', // "Company", "Courier", "Other", or "None"
-            vehicle_details = null
-        } = req.body;
+	try {
+		const {
+			first_name,
+			last_name,
+			phone,
+			password,
+			employee_id,
+			active = true,
+		} = req.body;
 
-        // Step 1: Validate required fields
-        if (!first_name || !last_name || !phone || !employee_id) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please provide first name, last name, phone, and employee ID'
-            });
-        }
+		/* ------------------ validation ------------------ */
+		if (!first_name || !last_name || !phone || !password || !employee_id) {
+			return res.status(400).json({
+				message: "Missing required fields",
+			});
+		}
 
-        // Step 2: Check if employee ID already exists
-        const existingEmployee = await Employee.findOne({ employee_id }).session(session);
-        if (existingEmployee) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({
-                success: false,
-                message: 'Employee ID already exists'
-            });
-        }
+		/* -------- prevent duplicate phone / employee_id -------- */
+		const exists = await Employee.findOne({
+			$or: [{ phone }, { employee_id }],
+		});
 
-        // Step 3: Check if phone already exists
-        const existingPhone = await Employee.findOne({ phone }).session(session);
-        if (existingPhone) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(400).json({
-                success: false,
-                message: 'Phone number already exists'
-            });
-        }
+		if (exists) {
+			return res.status(409).json({
+				message: "Employee with this phone or employee_id already exists",
+			});
+		}
 
-        // Step 4: Create the courier (Employee) record
-        const courier = new Employee({
-            first_name,
-            last_name,
-            phone,
-            employee_id,
-            role,
-            active,
-            // Set default password (should be changed on first login)
-            password: `temp${employee_id}123`
-        });
+		/* ---------------- password hashing ---------------- */
+		const hashedPassword = await bcrypt.hash(password, 12);
 
-        await courier.save({ session });
+		/* ---------------- create courier ---------------- */
+		const courier = await Employee.create({
+			first_name,
+			last_name,
+			phone,
+			password: hashedPassword,
+			employee_id,
+			role: "courier", // enforce courier role
+			active,
+		});
 
-        let vehicle = null;
+		/* -------- hide password in response -------- */
+		const courierResponse = courier.toObject();
+		delete courierResponse.password;
 
-        // Step 5: Handle vehicle if provided
-        if (vehicle_type && vehicle_type !== 'None' && vehicle_details) {
-            switch(vehicle_type) {
-                case 'Company':
-                    // Validate company vehicle data
-                    if (!vehicle_details.vehicle_id) {
-                        await session.abortTransaction();
-                        session.endSession();
-                        return res.status(400).json({
-                            success: false,
-                            message: 'Company vehicle ID is required'
-                        });
-                    }
+		return res.status(201).json(courierResponse);
 
-                    // Check if vehicle exists and is available
-                    vehicle = await Vehicle.findById(vehicle_details.vehicle_id).session(session);
-                    if (!vehicle) {
-                        await session.abortTransaction();
-                        session.endSession();
-                        return res.status(404).json({
-                            success: false,
-                            message: 'Company vehicle not found'
-                        });
-                    }
+	} catch (error) {
+		console.error("Create courier error:", error);
+		return res.status(500).json({
+			message: "Internal server error",
+		});
+	}
+};
 
-                    if (vehicle.assigned_courier) {
-                        await session.abortTransaction();
-                        session.endSession();
-                        return res.status(400).json({
-                            success: false,
-                            message: 'Vehicle is already assigned to another courier'
-                        });
-                    }
+// GET /api/admin/pods
+export const listProofs = async (req, res) => {
+	try {
+		const { courier, date, date_from, date_to } = req.query;
+		const q = {};
+		if (courier) q.courier_id = courier;
+		if (date) {
+			const d = new Date(date);
+			const start = new Date(d.setHours(0,0,0,0));
+			const end = new Date(d.setHours(23,59,59,999));
+			q.signed_at = { $gte: start, $lte: end };
+		} else if (date_from || date_to) {
+			q.signed_at = {};
+			if (date_from) q.signed_at.$gte = new Date(new Date(date_from).setHours(0,0,0,0));
+			if (date_to) q.signed_at.$lte = new Date(new Date(date_to).setHours(23,59,59,999));
+		}
 
-                    if (vehicle.Owner !== 'Company') {
-                        await session.abortTransaction();
-                        session.endSession();
-                        return res.status(400).json({
-                            success: false,
-                            message: 'Selected vehicle is not a company vehicle'
-                        });
-                    }
+		const proofs = await ProofOfDelivery.find(q).sort({ signed_at: -1 }).lean();
 
-                    // Assign vehicle to courier
-                    vehicle.assigned_courier = courier._id;
-                    await vehicle.save({ session });
-                    break;
+		// attach parcel tracking and courier name
+		const parcelIds = proofs.map(p => p.parcel_id).filter(Boolean);
+		const parcels = parcelIds.length ? await Parcel.find({ _id: { $in: parcelIds } }).select('tracking_code').lean() : [];
+		const parcelMap = parcels.reduce((acc, p) => { acc[p._id.toString()] = p; return acc; }, {});
 
-                case 'Courier':
-                    // Validate courier vehicle data
-                    if (!vehicle_details.plate_raw || 
-                        !vehicle_details.province || 
-                        !vehicle_details.vehicle_type || 
-                        !vehicle_details.capacity_kg) {
-                        await session.abortTransaction();
-                        session.endSession();
-                        return res.status(400).json({
-                            success: false,
-                            message: 'All vehicle fields are required for courier vehicle'
-                        });
-                    }
+		const courierIds = proofs.map(p => p.courier_id).filter(Boolean);
+		const couriers = courierIds.length ? await Employee.find({ _id: { $in: courierIds } }).select('first_name last_name employee_id').lean() : [];
+		const courierMap = couriers.reduce((acc, c) => { acc[c._id.toString()] = c; return acc; }, {});
 
-                    // Check if vehicle with same plate and province already exists
-                    const normalizedPlate = vehicle_details.plate_no || 
-                        vehicle_details.plate_raw.replace(/[\s\-]/g, "").toUpperCase();
+		const enriched = proofs.map(p => ({
+			...p,
+			parcel: parcelMap[p.parcel_id?.toString()] || null,
+			courier: courierMap[p.courier_id?.toString()] || null
+		}));
 
-                    const existingVehicle = await Vehicle.findOne({
-                        plate_no: normalizedPlate,
-                        province: vehicle_details.province
-                    }).session(session);
+		return res.json({ proofs: enriched });
+	} catch (err) {
+		console.error('List proofs error:', err);
+		return res.status(500).json({ message: 'Failed to fetch proofs', error: err.message });
+	}
+};
 
-                    if (existingVehicle) {
-                        await session.abortTransaction();
-                        session.endSession();
-                        return res.status(400).json({
-                            success: false,
-                            message: 'Vehicle with this plate number and province already exists'
-                        });
-                    }
+// ------------------------------------------------------------------- HUB ------------------------------------------------------------------- //
 
-                    // Create new vehicle record
-                    vehicle = new Vehicle({
-                        plate_raw: vehicle_details.plate_raw,
-                        plate_no: normalizedPlate,
-                        province: vehicle_details.province,
-                        vehicle_type: vehicle_details.vehicle_type,
-                        capacity_kg: Number(vehicle_details.capacity_kg),
-                        Owner: 'Courier',
-                        assigned_courier: courier._id
-                    });
+// GET /api/admin/hubs
+export const listHubs = async (req, res) => {
+	try {
+		const hubs = await Hub.find().sort({ hub_name: 1 }).lean();
+		return res.json({ hubs });
+	} catch (err) {
+		console.error('List hubs error:', err);
+		return res.status(500).json({ message: 'Failed to fetch hubs', error: err.message });
+	}
+};
 
-                    try {
-                        await vehicle.validate();
-                    } catch (validationError) {
-                        await session.abortTransaction();
-                        session.endSession();
-                        return res.status(400).json({
-                            success: false,
-                            message: validationError.message || 'Invalid vehicle data'
-                        });
-                    }
+// GET /api/admin/routes
+export const listRoutes = async (req, res) => {
+	try {
+		const routes = await Route.find().sort({ route_date: -1 }).limit(10)
+			.populate('hub_id', 'hub_name address_text sub_district')
+			.populate('courier_id', 'first_name last_name employee_id')
+			.lean();
 
-                    await vehicle.save({ session });
-                    break;
+		const mapped = routes.map(r => ({
+			_id: r._id,
+			route_date: r.route_date,
+			status: r.status,
+			hub: r.hub_id ? { hub_name: r.hub_id.hub_name, address_text: r.hub_id.address_text, sub_district: r.hub_id.sub_district } : null,
+			courier: r.courier_id ? { first_name: r.courier_id.first_name, last_name: r.courier_id.last_name, employee_id: r.courier_id.employee_id } : null
+		}));
 
-                case 'Other':
-                    // For "Other" vehicles, we need to handle them differently
-                    // Since Vehicle schema only allows "Company" or "Courier" as Owner
-                    // We'll create it as "Courier" type but with notes or custom handling
-                    if (!vehicle_details.plate_raw || 
-                        !vehicle_details.province || 
-                        !vehicle_details.vehicle_type || 
-                        !vehicle_details.capacity_kg ||
-                        !vehicle_details.Owner) {
-                        await session.abortTransaction();
-                        session.endSession();
-                        return res.status(400).json({
-                            success: false,
-                            message: 'All vehicle fields are required for other vehicle'
-                        });
-                    }
+		return res.json({ routes: mapped });
+	} catch (err) {
+		console.error('List routes error:', err);
+		return res.status(500).json({ message: 'Failed to fetch routes', error: err.message });
+	}
+};
 
-                    // Check if vehicle with same plate and province already exists
-                    const normalizedPlateOther = vehicle_details.plate_no || 
-                        vehicle_details.plate_raw.replace(/[\s\-]/g, "").toUpperCase();
+// GET /api/admin/scan-events
+export const listScanEvents = async (req, res) => {
+	try {
+		const events = await ParcelScanEvent.find().sort({ event_time: -1 }).limit(10).lean();
 
-                    const existingVehicleOther = await Vehicle.findOne({
-                        plate_no: normalizedPlateOther,
-                        province: vehicle_details.province
-                    }).session(session);
+		const parcelIds = events.map(e => e.parcel_id).filter(Boolean);
+		const parcels = parcelIds.length ? await Parcel.find({ _id: { $in: parcelIds } }).select('tracking_code').lean() : [];
+		const parcelMap = parcels.reduce((acc, p) => { acc[p._id.toString()] = p; return acc; }, {});
 
-                    if (existingVehicleOther) {
-                        await session.abortTransaction();
-                        session.endSession();
-                        return res.status(400).json({
-                            success: false,
-                            message: 'Vehicle with this plate number and province already exists'
-                        });
-                    }
+		const hubIds = events.map(e => e.hub_id).filter(Boolean);
+		const hubs = hubIds.length ? await Hub.find({ _id: { $in: hubIds } }).select('hub_name address_text sub_district').lean() : [];
+		const hubMap = hubs.reduce((acc, h) => { acc[h._id.toString()] = h; return acc; }, {});
 
-                    // Create new vehicle record as "Courier" type
-                    // Note: You might want to add a custom_owner field to Vehicle schema
-                    // or handle "Other" vehicles differently in your business logic
-                    vehicle = new Vehicle({
-                        plate_raw: vehicle_details.plate_raw,
-                        plate_no: normalizedPlateOther,
-                        province: vehicle_details.province,
-                        vehicle_type: vehicle_details.vehicle_type,
-                        capacity_kg: Number(vehicle_details.capacity_kg),
-                        Owner: 'Courier', // Using 'Courier' as fallback
-                        assigned_courier: courier._id,
-                        // You could add a custom field if you modify the schema:
-                        // custom_owner: vehicle_details.Owner
-                    });
+		const courierIds = events.map(e => e.courier_id).filter(Boolean);
+		const couriers = courierIds.length ? await Employee.find({ _id: { $in: courierIds } }).select('first_name last_name employee_id').lean() : [];
+		const courierMap = couriers.reduce((acc, c) => { acc[c._id.toString()] = c; return acc; }, {});
 
-                    try {
-                        await vehicle.validate();
-                    } catch (validationError) {
-                        await session.abortTransaction();
-                        session.endSession();
-                        return res.status(400).json({
-                            success: false,
-                            message: validationError.message || 'Invalid vehicle data'
-                        });
-                    }
+		const enriched = events.map(e => ({
+			...e,
+			parcel: parcelMap[e.parcel_id?.toString()] || null,
+			hub: hubMap[e.hub_id?.toString()] || null,
+			courier: courierMap[e.courier_id?.toString()] || null
+		}));
 
-                    await vehicle.save({ session });
-                    break;
+		return res.json({ events: enriched });
+	} catch (err) {
+		console.error('List scan events error:', err);
+		return res.status(500).json({ message: 'Failed to fetch scan events', error: err.message });
+	}
+};
 
-                default:
-                    // Invalid vehicle type
-                    await session.abortTransaction();
-                    session.endSession();
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Invalid vehicle type'
-                    });
-            }
-        }
+// POST /api/admin/hubs
+export const createHub = async (req, res) => {
+	try {
+		const { hub_name, address_text, sub_district, active } = req.body;
+		if (!hub_name || !hub_name.trim()) return res.status(400).json({ message: 'hub_name is required' });
 
-        // Step 6: Commit transaction
-        await session.commitTransaction();
-        session.endSession();
+		const exists = await Hub.findOne({ hub_name: hub_name.trim() });
+		if (exists) return res.status(409).json({ message: 'Hub with this name already exists' });
 
-        // Step 7: Prepare response (exclude password)
-        const courierResponse = await Employee.findById(courier._id)
-            .select('-password -__v');
+		const hub = await Hub.create({ hub_name: hub_name.trim(), address_text: address_text || '', sub_district: sub_district || '', active: active === undefined ? true : !!active });
+		return res.status(201).json({ hub });
+	} catch (err) {
+		console.error('Create hub error:', err);
+		return res.status(500).json({ message: 'Failed to create hub', error: err.message });
+	}
+};
 
-        const response = {
-            success: true,
-            message: 'Courier created successfully',
-            data: {
-                courier: courierResponse
-            }
-        };
-
-        // Add vehicle to response if created
-        if (vehicle) {
-            const vehicleResponse = await Vehicle.findById(vehicle._id)
-                .populate('assigned_courier', 'first_name last_name employee_id');
-            response.data.vehicle = vehicleResponse;
-        }
-
-        res.status(201).json(response);
-
-    } catch (error) {
-        // Rollback transaction on error
-        await session.abortTransaction();
-        session.endSession();
-
-        console.error('Create courier error:', error);
-        
-        if (error.name === 'ValidationError') {
-            return res.status(400).json({
-                success: false,
-                message: 'Validation error',
-                errors: error.errors
-            });
-        }
-
-        if (error.code === 11000) {
-            const field = error.keyPattern ? Object.keys(error.keyPattern)[0] : 'field';
-            return res.status(400).json({
-                success: false,
-                message: `${field} already exists`
-            });
-        }
-
-        res.status(500).json({
-            success: false,
-            message: 'Server error while creating courier',
-            error: error.message
-        });
-    }
+// DELETE /api/admin/hubs/:id
+export const deleteHub = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const hub = await Hub.findById(id);
+		if (!hub) return res.status(404).json({ message: 'Hub not found' });
+		await hub.deleteOne();
+		return res.json({ success: true });
+	} catch (err) {
+		console.error('Delete hub error:', err);
+		return res.status(500).json({ message: 'Failed to delete hub', error: err.message });
+	}
 };
 
 // ------------------------------------------------------------------- VEHICLE ------------------------------------------------------------------- //
@@ -500,163 +442,166 @@ export const createNewVehicle = async (req, res) => {
 			province,
 			vehicle_type,
 			capacity_kg,
-			Owner,
-			assigned_courier
+			owner,
+			assigned_courier,
+			notes,
 		} = req.body;
 
-		// Validate required fields
-		if (!plate_raw || !province || !vehicle_type || !capacity_kg || !Owner) {
+		/* ---------- required fields ---------- */
+		if (!plate_raw || !province || !vehicle_type || !capacity_kg || !owner) {
 			return res.status(400).json({
 				success: false,
-				message: 'Please provide all required fields'
+				message: "Please provide all required fields",
 			});
 		}
 
-		// Validate Owner enum
-		if (!['Company', 'Courier', 'Other'].includes(Owner)) {
+		/* ---------- enums ---------- */
+		if (!["Company", "Courier"].includes(owner)) {
 			return res.status(400).json({
 				success: false,
-				message: 'Owner must be either Company, Courier, or Other'
+				message: "Owner must be Company or Courier",
 			});
 		}
 
-		// Validate vehicle type
-		if (!['pickup', 'motorcycle', 'truck'].includes(vehicle_type)) {
+		if (!["pickup", "motorcycle", "truck"].includes(vehicle_type)) {
 			return res.status(400).json({
 				success: false,
-				message: 'Vehicle type must be pickup, motorcycle, or truck'
+				message: "Vehicle type must be pickup, motorcycle, or truck",
 			});
 		}
 
-		// Check if vehicle already exists
-		const normalizedPlate = plate_no || plate_raw.replace(/[\s\-]/g, "").toUpperCase();
+		/* ---------- normalize plate ---------- */
+		const normalizedPlate =
+			plate_no || plate_raw.replace(/[\s\-]/g, "").toUpperCase();
 
 		const existingVehicle = await Vehicle.findOne({
 			plate_no: normalizedPlate,
-			province
+			province,
 		});
 
 		if (existingVehicle) {
 			return res.status(400).json({
 				success: false,
-				message: 'Vehicle with this plate number and province already exists'
+				message: "Vehicle with this plate number and province already exists",
 			});
 		}
 
-		// Create new vehicle
-		const vehicle = new Vehicle({
+		/* ---------- validate courier if required ---------- */
+		if (owner === "Courier") {
+			if (!assigned_courier) {
+				return res.status(400).json({
+					success: false,
+					message: "assigned_courier is required when owner is Courier",
+				});
+			}
+
+			const courier = await Employee.findById(assigned_courier);
+			if (!courier) {
+				return res.status(404).json({
+					success: false,
+					message: "Assigned courier not found",
+				});
+			}
+		}
+
+		/* ---------- create ---------- */
+		const vehicle = await Vehicle.create({
 			plate_raw,
 			plate_no: normalizedPlate,
 			province,
 			vehicle_type,
-			capacity_kg: parseInt(capacity_kg),
-			Owner,
-			assigned_courier: assigned_courier || null
+			capacity_kg: parseInt(capacity_kg, 10),
+			owner,
+			assigned_courier:
+				owner === "Courier" ? assigned_courier : undefined,
+			notes: notes || "",
 		});
 
-		// Validate the vehicle (this will trigger pre-validate middleware)
-		await vehicle.validate();
-
-		// Save to database
-		await vehicle.save();
-
-		res.status(201).json({
+		return res.status(201).json({
 			success: true,
-			message: 'Vehicle created successfully',
-			vehicle: vehicle.toObject()
+			message: "Vehicle created successfully",
+			vehicle,
 		});
 
 	} catch (error) {
-		console.error('Create vehicle error:', error);
+		console.error("Create vehicle error:", error);
 
-		if (error.name === 'ValidationError') {
+		if (error.name === "ValidationError") {
 			return res.status(400).json({
 				success: false,
-				message: 'Validation error',
-				errors: error.errors
+				message: "Validation error",
+				errors: error.errors,
 			});
 		}
 
-		res.status(500).json({
+		return res.status(500).json({
 			success: false,
-			message: 'Server error while creating vehicle',
-			error: error.message
+			message: "Server error while creating vehicle",
+			error: error.message,
 		});
 	}
 };
+
 
 // PUT /api/admin/vehicles/:id
 export const updateVehicle = async (req, res) => {
 	try {
-		const vehicle = await Vehicle.findById(req.params.id);
+		const { assigned_courier, ...otherUpdates } = req.body;
+
+		/* ---------- validate courier if provided ---------- */
+		if (assigned_courier !== undefined && assigned_courier !== null && assigned_courier !== "") {
+			const courier = await Employee.findById(assigned_courier);
+			if (!courier) {
+				return res.status(404).json({
+					success: false,
+					message: "Courier not found",
+				});
+			}
+		}
+
+		const updatePayload = {
+			...otherUpdates,
+		};
+
+		if (assigned_courier !== undefined) {
+			updatePayload.assigned_courier =
+				assigned_courier ? assigned_courier : undefined;
+		}
+
+		const vehicle = await Vehicle.findByIdAndUpdate(
+			req.params.id,
+			{ $set: updatePayload },
+			{
+				new: true,           // return updated doc
+				runValidators: false // IMPORTANT: avoid required owner validation
+			}
+		);
 
 		if (!vehicle) {
 			return res.status(404).json({
 				success: false,
-				message: 'Vehicle not found'
+				message: "Vehicle not found",
 			});
 		}
 
-		const updates = req.body;
-
-		// Prevent changing Owner type if vehicle is already assigned
-		if (updates.Owner && vehicle.assigned_courier) {
-			return res.status(400).json({
-				success: false,
-				message: 'Cannot change Owner type of an assigned vehicle'
-			});
-		}
-
-		// Update fields
-		Object.keys(updates).forEach(key => {
-			if (key !== 'assigned_courier' && key in vehicle) {
-				vehicle[key] = updates[key];
-			}
-		});
-
-		// Handle assigned_courier separately
-		if (updates.assigned_courier !== undefined) {
-			if (updates.assigned_courier === null || updates.assigned_courier === '') {
-				vehicle.assigned_courier = undefined;
-			} else {
-				// Verify courier exists
-				const courier = await Employee.findById(updates.assigned_courier);
-				if (!courier) {
-					return res.status(404).json({
-						success: false,
-						message: 'Courier not found'
-					});
-				}
-				vehicle.assigned_courier = updates.assigned_courier;
-			}
-		}
-
-		await vehicle.save();
-
-		res.status(200).json({
+		return res.status(200).json({
 			success: true,
-			message: 'Vehicle updated successfully',
-			vehicle: vehicle.toObject()
+			message: "Vehicle updated successfully",
+			vehicle,
 		});
 
 	} catch (error) {
-		console.error('Update vehicle error:', error);
+		console.error("Update vehicle error:", error);
 
-		if (error.name === 'ValidationError') {
-			return res.status(400).json({
-				success: false,
-				message: 'Validation error',
-				errors: error.errors
-			});
-		}
-
-		res.status(500).json({
+		return res.status(500).json({
 			success: false,
-			message: 'Server error while updating vehicle',
-			error: error.message
+			message: "Server error while updating vehicle",
+			error: error.message,
 		});
 	}
 };
+
+
 
 // DELETE /api/admin/vehicles/:id
 export const deleteVehicle = async (req, res) => {
@@ -695,6 +640,148 @@ export const deleteVehicle = async (req, res) => {
 	}
 };
 
+// ------------------------------------------------------------------- PARCEL ------------------------------------------------------------------- //
+
+// GET /api/admin/parcels
+export const listParcels = async (req, res) => {
+	try {
+		const { search, status, hub } = req.query;
+
+		const filters = {};
+
+		if (status) filters.status = status;
+
+		if (hub) {
+			// match either origin or destination hub id
+			filters.$or = filters.$or || [];
+			filters.$or.push({ origin_hub_id: hub }, { dest_hub_id: hub });
+		}
+
+		if (search) {
+			const safe = search.trim();
+			const regex = new RegExp(safe.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&"), 'i');
+			filters.$or = filters.$or || [];
+			filters.$or.push(
+				{ tracking_code: { $regex: regex } },
+				{ 'sender.first_name': { $regex: regex } },
+				{ 'sender.last_name': { $regex: regex } },
+				{ 'recipient.first_name': { $regex: regex } },
+				{ 'recipient.last_name': { $regex: regex } }
+			);
+		}
+		const parcels = await Parcel.find(filters).sort({ created_at: -1 }).limit(200).lean();
+		res.status(200).json({ success: true, parcels });
+	} catch (error) {
+		console.error('List parcels error:', error);
+		res.status(500).json({ success: false, message: 'Server error while fetching parcels', error: error.message });
+	}
+};
+
+// GET /api/admin/parcels/:id
+export const getParcelByID = async (req, res) => {
+	try {
+		const parcel = await Parcel.findById(req.params.id).lean();
+		if (!parcel) return res.status(404).json({ success: false, message: 'Parcel not found' });
+		return res.status(200).json({ success: true, parcel });
+	} catch (error) {
+		console.error('Get parcel error:', error);
+		return res.status(500).json({ success: false, message: 'Server error while fetching parcel', error: error.message });
+	}
+};
+
+// POST /api/admin/parcels
+export const createParcel = async (req, res) => {
+	try {
+		const {
+			tracking_code,
+			sender,
+			recipient,
+			origin_hub_id,
+			dest_hub_id,
+			weight_grams,
+			declared_value,
+			status
+		} = req.body;
+
+		if (!tracking_code || !sender || !recipient || !origin_hub_id || !dest_hub_id) {
+			return res.status(400).json({ success: false, message: 'Missing required fields' });
+		}
+
+		const exists = await Parcel.findOne({ tracking_code });
+		if (exists) return res.status(409).json({ success: false, message: 'Parcel with this tracking code already exists' });
+
+		const parcel = await Parcel.create({
+			tracking_code,
+			sender,
+			recipient,
+			origin_hub_id,
+			dest_hub_id,
+			weight_grams: weight_grams ? Number(weight_grams) : undefined,
+			declared_value: declared_value ? Number(declared_value) : undefined,
+			status: status || undefined
+		});
+
+		return res.status(201).json({ success: true, parcel });
+	} catch (error) {
+		console.error('Create parcel error:', error);
+		return res.status(500).json({ success: false, message: 'Server error while creating parcel', error: error.message });
+	}
+};
+
+// PUT /api/admin/parcels/:id
+export const updateParcel = async (req, res) => {
+	try {
+		const updates = req.body || {};
+		const parcel = await Parcel.findByIdAndUpdate(req.params.id, { $set: updates }, { new: true, runValidators: true });
+		if (!parcel) return res.status(404).json({ success: false, message: 'Parcel not found' });
+		return res.status(200).json({ success: true, parcel });
+	} catch (error) {
+		console.error('Update parcel error:', error);
+		return res.status(500).json({ success: false, message: 'Server error while updating parcel', error: error.message });
+	}
+};
+
+//---------------------------------------------------------------- POD ------------------------------------------------------------------- //
+// GET /api/admin/pods/:id
+export const getProofDetail = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const proof = await ProofOfDelivery.findById(id).lean();
+        if (!proof) {
+            return res.status(404).json({ message: 'Proof of Delivery not found' });
+        }
+
+        // Get parcel details
+        const parcel = proof.parcel_id ? await Parcel.findById(proof.parcel_id)
+            .select('tracking_code status created_at delivered_at')
+            .lean() : null;
+
+        // Get courier details
+        const courier = proof.courier_id ? await Employee.findById(proof.courier_id)
+            .select('first_name last_name employee_id phone')
+            .lean() : null;
+
+        // Get recipient info from parcel if available
+        let recipientInfo = null;
+        if (parcel && parcel.recipient) {
+            recipientInfo = parcel.recipient;
+        }
+
+        return res.json({
+            success: true,
+            proof: {
+                ...proof,
+                parcel,
+                courier,
+                recipient_info: recipientInfo
+            }
+        });
+    } catch (err) {
+        console.error('Get proof detail error:', err);
+        return res.status(500).json({ message: 'Failed to fetch proof details', error: err.message });
+    }
+};
 
 export default { listCouriers };
 

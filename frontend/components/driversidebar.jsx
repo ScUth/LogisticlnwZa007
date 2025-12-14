@@ -39,7 +39,7 @@ export default function Sidebar({ children }) {
         <aside className="h-screen">
             <nav className={`h-full flex flex-col bg-amber-600 border-r shadow-sm transition-all duration-200 flex-shrink-0 ${expanded ? "w-64" : "w-16"}`}>
                 <div className="p-4 pb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={() => router.push("/")}>
                         <Image
                             src={logo}
                             alt="logo"

@@ -1,53 +1,84 @@
 "use client"
 
-import { Boxes, BusFront, CircleSmall, Fullscreen, LayoutDashboard, Package, Truck, User, Warehouse } from "lucide-react"
+import { Boxes, BusFront, CircleSmall, Fullscreen, LayoutDashboard, Package, SquarePen, Truck, User, Warehouse } from "lucide-react"
 import Sidebar, { SidebarItem, SubSidebarItem } from "@/components/AdminSidebar"
-import { useRouter } from "next/navigation"
+import React, { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
-export default function hubManagement() {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+
+export default function parcelDetails() {
     const router = useRouter()
-    const parcel_sender_recipient = [
-        { parcel_id: 'P001', sender_id: 'S001', sender_fname: 'Gluteus', sender_lname: 'Maximus', recipient_id: 'R001', recipient_fname: 'Biceps', recipient_lname: 'Brachii'},
-        { parcel_id: 'P002', sender_id: 'S002', sender_fname: 'Rectus', sender_lname: 'Femoris', recipient_id: 'R002', recipient_fname: 'Triceps', recipient_lname: 'Brachii'},
-        { parcel_id: 'P003', sender_id: 'S003', sender_fname: 'Pronator', sender_lname: 'Quadratus', recipient_id: 'R003', recipient_fname: 'Orbicularis', recipient_lname: 'Oculi'},
-        { parcel_id: 'P004', sender_id: 'S004', sender_fname: 'Flexor', sender_lname: 'Retinaculum', recipient_id: 'R004', recipient_fname: 'Quadriceps', recipient_lname: 'Femoris'},
-        { parcel_id: 'P005', sender_id: 'S005', sender_fname: 'Flexor', sender_lname: 'Digitorum', recipient_id: 'R005', recipient_fname: 'Sartorius', recipient_lname: 'Muscle'},
-    ]
-    const parcel_hub = [
-        { parcel_id: 'P001', hub_origin_id: 'H001', hub_origin_name: 'Hub A', hub_dest_id: 'H003', hub_dest_name: 'Hub C', route_id: 'RO001' },
-        { parcel_id: 'P002', hub_origin_id: 'H001', hub_origin_name: 'Hub A', hub_dest_id: 'H004', hub_dest_name: 'Hub D', route_id: 'RO002' },
-        { parcel_id: 'P003', hub_origin_id: 'H002', hub_origin_name: 'Hub B', hub_dest_id: 'H004', hub_dest_name: 'Hub D', route_id: 'RO003' },
-        { parcel_id: 'P004', hub_origin_id: 'H002', hub_origin_name: 'Hub B', hub_dest_id: 'H005', hub_dest_name: 'Hub E', route_id: 'RO004' },
-        { parcel_id: 'P005', hub_origin_id: 'H003', hub_origin_name: 'Hub C', hub_dest_id: 'H005', hub_dest_name: 'Hub E', route_id: 'RO005' },
-    ]
-    const parcel_events = [
-        { parcel_id: 'P001', event_time: '2025-12-13 02:30:00', hub_id: null, courier_id: '456', event_type: 'delivered' },
-        { parcel_id: 'P001', event_time: '2025-12-12 02:30:00', hub_id: null, courier_id: '456', event_type: 'out for delivery' },
-        { parcel_id: 'P002', event_time: '2025-12-11 02:30:00', hub_id: '213', courier_id: null, event_type: 'at dest hub' },
-        { parcel_id: 'P003', event_time: '2025-12-10 02:30:00', hub_id: '213', courier_id: null, event_type: 'at origin hub' },
-        { parcel_id: 'P003', event_time: '2025-12-13 02:30:00', hub_id: null, courier_id: '456', event_type: 'delivered' },
-        { parcel_id: 'P004', event_time: '2025-12-12 02:30:00', hub_id: null, courier_id: '456', event_type: 'out for delivery' },
-        { parcel_id: 'P004', event_time: '2025-12-11 02:30:00', hub_id: '213', courier_id: null, event_type: 'at dest hub' },
-        { parcel_id: 'P005', event_time: '2025-12-10 02:30:00', hub_id: '213', courier_id: null, event_type: 'at origin hub' },
-        { parcel_id: 'P005', event_time: '2025-12-13 02:30:00', hub_id: null, courier_id: '456', event_type: 'delivered' },
-    ]
-    const parcel_proof_status = [
-        { parcel_id: 'P001', recipient_id: 'R001', photo_url: 'proofP001.jpg', status: 'delivered' },
-        { parcel_id: 'P002', recipient_id: 'R002', photo_url: 'proofP002.jpg', status: 'delivered' },
-        { parcel_id: 'P003', recipient_id: 'R003', photo_url: 'proofP003.jpg', status: 'delivered' },
-        { parcel_id: 'P004', recipient_id: 'R004', photo_url: 'proofP004.jpg', status: 'delivered' },
-        { parcel_id: 'P005', recipient_id: 'R005', photo_url: 'proofP005.jpg', status: 'delivered' },
-    ]
+    const params = useSearchParams();
+    const id = params.get('id');
+
+    const [parcel, setParcel] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [status, setStatus] = useState('');
+    const [parcelId, setParcelId] = useState('');
+
+    useEffect(() => {
+        if (!id) return;
+        const fetchParcel = async () => {
+            try {
+                setLoading(true);
+                const res = await fetch(`${API_BASE_URL}/api/admin/parcels/${id}`, { credentials: 'include' });
+                if (!res.ok) throw new Error('Failed to fetch parcel');
+                const data = await res.json();
+                setParcel(data.parcel || null);
+                setStatus(data.parcel?.status || '');
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchParcel();
+    }, [id]);
+
+    const updateStatus = async (newStatus) => {
+        if (!parcel) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/admin/parcels/${parcel._id}`, { method: 'PUT', credentials: 'include', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ status: newStatus }) });
+            if (!res.ok) throw new Error('Failed to update status');
+            const data = await res.json();
+            setParcel(data.parcel);
+            setStatus(data.parcel.status);
+        } catch (err) {
+            setError(err.message);
+        }
+    }
+
+    // Derived view models from fetched parcel
+    const senderRecipient = parcel ? {
+        sender_id: parcel.sender?.phone || '',
+        sender_fname: parcel.sender?.first_name || '',
+        sender_lname: parcel.sender?.last_name || '',
+        recipient_id: parcel.recipient?.phone || '',
+        recipient_fname: parcel.recipient?.first_name || '',
+        recipient_lname: parcel.recipient?.last_name || ''
+    } : null;
+
+    const hubRoute = parcel ? {
+        hub_origin_id: parcel.origin_hub_id || '',
+        hub_origin_name: parcel.origin_hub_id || '',
+        hub_dest_id: parcel.dest_hub_id || '',
+        hub_dest_name: parcel.dest_hub_id || '',
+        route_id: parcel.route_id || '-'
+    } : null;
+
+    const events = []; // ParcelScanEvent not fetched here; implement fetching if needed
+    const proofStatus = null; // Proof of Delivery not fetched here; implement fetching if needed
 
     return (
         <div className="flex h-screen">
             <Sidebar>
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')}/>
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')}/>
-                <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')}/>
-                <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')}/>
+                <SidebarItem icon={<User />} text="Record" onClick={() => router.push('/admin/management/records')}/>
+                <SidebarItem icon={<Package />} text="Parcel Management" active/>
                 <SubSidebarItem text="Parcel List" onClick={() => router.push('/admin/management/parcel/list')} />
-                <SubSidebarItem text="Create/Update Parcel" onClick={() => router.push('/admin/management/parcel/create')} />
                 <SubSidebarItem text="Parcel Detail" active />
                 <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')}/>
                 <SidebarItem icon={<Truck />} text="Courier Management" onClick={() => router.push('/admin/management/courier')}/>
@@ -72,7 +103,7 @@ export default function hubManagement() {
 
                     <div className="mt-6">
                         <span className="text-[16px] text-gray-600">Please input Parcel ID below</span>
-                        <input className="w-full mt-2 px-2 py-1 border-2 rounded-lg" />
+                        <input className="w-full mt-2 px-2 py-1 border-2 rounded-lg" placeholder="e.g. P001" value={parcelId} onChange={(e) => setParcelId(e.target.value.trim())} />
                     </div>
                 </div>
 
@@ -93,6 +124,27 @@ export default function hubManagement() {
                                     <th className="px-2 py-1 text-center">Recipient Name</th>
                                 </tr>
                             </thead>
+
+                            <tbody>
+                                {senderRecipient ? (
+                                    <tr className="border-t">
+                                        <td className="px-2 py-1 text-center">{senderRecipient.sender_id}</td>
+                                        <td className="px-2 py-1 text-center">
+                                            {senderRecipient.sender_fname} {senderRecipient.sender_lname}
+                                        </td>
+                                        <td className="px-2 py-1 text-center">{senderRecipient.recipient_id}</td>
+                                        <td className="px-2 py-1 text-center">
+                                            {senderRecipient.recipient_fname} {senderRecipient.recipient_lname}
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    <tr>
+                                        <td colSpan={4} className="text-center py-3 text-gray-400">
+                                            No data
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -115,6 +167,24 @@ export default function hubManagement() {
                                     <th className="px-2 py-1 text-center">Route ID</th>
                                 </tr>
                             </thead>
+
+                            <tbody>
+                                {hubRoute ? (
+                                    <tr className="border-t">
+                                        <td className="px-2 py-1 text-center">{hubRoute.hub_origin_id}</td>
+                                        <td className="px-2 py-1 text-center">{hubRoute.hub_origin_name}</td>
+                                        <td className="px-2 py-1 text-center">{hubRoute.hub_dest_id}</td>
+                                        <td className="px-2 py-1 text-center">{hubRoute.hub_dest_name}</td>
+                                        <td className="px-2 py-1 text-center">{hubRoute.route_id}</td>
+                                    </tr>
+                                ) : (
+                                    <tr>
+                                        <td colSpan={5} className="text-center py-3 text-gray-400">
+                                            No data
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -136,6 +206,25 @@ export default function hubManagement() {
                                     <th className="px-2 py-1 text-center">Event Type</th>
                                 </tr>
                             </thead>
+
+                            <tbody>
+                                {events.length > 0 ? (
+                                    events.map((e, i) => (
+                                        <tr className="border-t">
+                                            <td className="px-2 py-1 text-center">{e.event_time}</td>
+                                            <td className="px-2 py-1 text-center">{e.hub_id ?? "-"}</td>
+                                            <td className="px-2 py-1 text-center">{e.courier_id ?? "-"}</td>
+                                            <td className="px-2 py-1 text-center">{e.event_type}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={4} className="text-center py-3 text-gray-400">
+                                            No data
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -154,9 +243,45 @@ export default function hubManagement() {
                                     <th className="px-2 py-1 text-center">Recipient ID</th>
                                     <th className="px-2 py-1 text-center">Photo Proof</th>
                                     <th className="px-2 py-1 text-center">Status</th>
-                                    <th className="px-2 py-1 text-center">Edit</th>
                                 </tr>
                             </thead>
+
+                            <tbody>
+                                {proofStatus ? (
+                                    <tr className="border-t">
+                                        <td className="px-2 py-1 text-center">{proofStatus.recipient_id}</td>
+                                        <td className="px-2 py-1 text-center">
+                                            <a href={proofStatus.photo_url} className="text-blue-600 underline">
+                                                View
+                                            </a>
+                                        </td>
+                                        <td className="px-2 py-1 text-center">
+                                            <div>
+                                                <label className="block">
+                                                    <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full mt-2 px-2 py-1 border-2 rounded-lg">
+                                                        <option value="" disabled>Select status</option>
+                                                        <option value="picked up">Picked Up</option>
+                                                        <option value="at origin hub">At Origin Hub</option>
+                                                        <option value="in linehaul">In Linehaul</option>
+                                                        <option value="at destination hub">At Destination Hub</option>
+                                                        <option value="out for delivery">Out For Delivery</option>
+                                                        <option value="delivered">Delivered</option>
+                                                        <option value="failed delivery">Failed Delivery</option>
+                                                        <option value="returned to sender">Returned To Sender</option>
+                                                        <option value="canceled">Canceled</option>
+                                                    </select>
+                                                </label>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    <tr>
+                                        <td colSpan={3} className="text-center py-3 text-gray-400">
+                                            No proof
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
                         </table>
                     </div>
                 </div>

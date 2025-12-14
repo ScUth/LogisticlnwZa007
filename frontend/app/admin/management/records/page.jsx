@@ -5,6 +5,6 @@ import { redirect, useRouter } from "next/navigation"
 export default function AdminTMPpage() {
     const router = useRouter()
     return (
-        redirect("/admin/management/pod/list")
+        redirect("/admin/management/records/recipient")
     )
 }

@@ -39,7 +39,7 @@ export default function Sidebar({ children }) {
         <aside className="h-screen">
             <nav className={`h-full flex flex-col bg-amber-600 border-r shadow-sm transition-all duration-200 flex-shrink-0 ${expanded ? "w-80" : "w-16"}`}>
                 <div className="p-4 pb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={() => router.push("/")}>
                         <Image
                             src={logo}
                             alt="logo"
@@ -64,9 +64,16 @@ export default function Sidebar({ children }) {
                 </SidebarContext.Provider>
                 <button onClick={handleProfileClick} className="hover:bg-amber-700">
                     <div className="border-t flex p-3 gap-3 text-left">
-                        <div className="border-2 p-2 rounded-md font-medium text-red-700 border-red-700">
-                            Admin
-                        </div>
+                        {expanded && (
+                            <div className="border-2 p-2 rounded-md font-medium text-red-700 border-red-700">
+                                Admin
+                            </div>
+                        )}
+                        {!!!expanded && (
+                            <div className="border-2 p-2 rounded-md font-medium text-red-700 border-red-700">
+                                A
+                            </div>
+                        )}
                         <div
                             className={`
                 flex justify-between items-center

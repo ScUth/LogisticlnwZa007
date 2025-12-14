@@ -243,8 +243,9 @@ const VehicleSchema = new mongoose.Schema({
   province: { type: String, enum: provinceList, required: true },
   vehicle_type: { type: String, enum: ["pickup", "motorcycle", "truck"], required: true },
   capacity_kg: { type: Number, required: true },
-  Owner: { type: String, required: true, enum: ["Company", "Courier"]},
+  owner: { type: String, required: true, enum: ["Company", "Courier"]},
   assigned_courier: { type: ObjectId, ref: "Employee" },
+  notes: { type: String, default: "" }
 }, { timestamps: true });
 
 function normalizePlateNo(input) {

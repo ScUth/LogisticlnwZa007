@@ -20,6 +20,7 @@ export const EmployeeAuthProvider = ({ children }) => {
                 const data = await response.json();
                 setEmployee(data.employee);
             } else {
+                console.warn('fetchCurrentEmployee failed:', response.status, await response.text());
                 setEmployee(null);
             }
         } catch (error) {
@@ -43,6 +44,13 @@ export const EmployeeAuthProvider = ({ children }) => {
         });
 
         if (response.ok) {
+            // set employee immediately from login response for better UX
+            try {
+                const data = await response.json();
+                if (data?.employee) setEmployee(data.employee);
+            } catch (e) {
+                console.warn('Failed to parse login response JSON', e);
+            }
             await fetchCurrentEmployee();
             return true;
         }

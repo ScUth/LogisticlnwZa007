@@ -3,41 +3,100 @@
 import { Boxes, BusFront, ClockAlert, FileChartColumn, Fullscreen, History, LayoutDashboard, MapPin, Package, Truck, User, Warehouse } from "lucide-react"
 import Sidebar, { SidebarItem } from "@/components/AdminSidebar"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
 
 export default function adminDashboard() {
     const router = useRouter()
-    const status = [
-        { parcel_num: 42, status: 'picked up' },
-        { parcel_num: 12, status: 'at origin hub' },
-        { parcel_num: 23, status: 'out for delivery' },
-        { parcel_num: 127, status: 'delivered' },
-        { parcel_num: 2, status: 'canceled' },
-    ]
-    const late = [
-        { parcel_id: '123', tracking_code: 123, sender_id: '123', recipient_id: '123', status: 'in linehaul', sla_due_dates: '2025-12-10' },
-        { parcel_id: '127', tracking_code: 125, sender_id: '126', recipient_id: '124', status: 'at dest hub', sla_due_dates: '2025-12-11' },
-    ]
-    const routes = [
-        { address_text: '123/45 หมู่บ้านไก่ย่าง', sub_district: 'เป็ดย่าง' },
-        { address_text: '123/46 หมู่บ้านไก่ทอด', sub_district: 'เป็ดทอด' },
-        { address_text: '123/89 หมู่บ้านไก่ต้ม', sub_district: 'เป็ดต้ม' },
-    ]
-    const drivers = [
-        { employee_id: '123', fname: 'Alexander', lname: 'Bubu', phone: '0900900990' },
-        { employee_id: '456', fname: 'Britney', lname: 'Spiw', phone: '1231231223' },
-        { employee_id: '789', fname: 'Charlie', lname: 'Poo', phone: '4564564556' },
-    ]
-    const recent_scan_event = [
-        { event_time: '2025-12-13 02:30:00', parcel_id: '123', hub_id: '213', courier_id: null, event_type: 'arrived hub' },
-        { event_time: '2025-12-13 02:35:00', parcel_id: '127', hub_id: null, courier_id: '456', event_type: 'delivered' },
-    ]
+    const [status, setStatus] = useState([])
+    const [late, setLate] = useState([])
+    const [routes, setRoutes] = useState([])
+    const [drivers, setDrivers] = useState([])
+    const [recent_scan_event, setRecentScanEvent] = useState([])
+
+    useEffect(() => {
+
+        const fetchParcels = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/parcels`, { credentials: 'include' })
+                if (!res.ok) throw new Error('Failed to fetch parcels')
+                const data = await res.json()
+                const parcels = data.parcels || []
+
+                // status counts
+                const counts = parcels.reduce((acc, p) => {
+                    const s = p.status || 'unknown'
+                    acc[s] = (acc[s] || 0) + 1
+                    return acc
+                }, {})
+                const statusArray = Object.keys(counts).map(k => ({ parcel_num: counts[k], status: k }))
+                setStatus(statusArray)
+
+                // late deliveries (sla_due_at in past and not delivered)
+                const now = new Date()
+                const lateList = parcels.filter(p => p.sla_due_at && new Date(p.sla_due_at) < now && p.status !== 'delivered')
+                    .slice(0, 5)
+                    .map(p => ({ parcel_id: p._id, tracking_code: p.tracking_code, sender_id: p.sender?.phone || '', recipient_id: p.recipient?.phone || '', status: p.status, sla_due_dates: p.sla_due_at }))
+                setLate(lateList)
+            } catch (err) {
+                console.error('Parcels fetch error', err)
+                setStatus([])
+                setLate([])
+            }
+        }
+
+        const fetchRoutes = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/routes`, { credentials: 'include' })
+                if (!res.ok) throw new Error('Failed to fetch routes')
+                const data = await res.json()
+                const mapped = (data.routes || []).slice(0, 5).map(r => ({ address_text: r.hub?.address_text || r.hub?.hub_name || '', sub_district: r.hub?.sub_district || '' }))
+                setRoutes(mapped)
+            } catch (err) {
+                console.error('Routes fetch error', err)
+                setRoutes([])
+            }
+        }
+
+        const fetchDrivers = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/couriers`, { credentials: 'include' })
+                if (!res.ok) throw new Error('Failed to fetch couriers')
+                const data = await res.json()
+                const mapped = (data.couriers || []).slice(0, 5).map(c => ({ employee_id: c.employee_id, fname: c.first_name, lname: c.last_name, phone: c.phone }))
+                setDrivers(mapped)
+            } catch (err) {
+                console.error('Couriers fetch error', err)
+                setDrivers([])
+            }
+        }
+
+        const fetchScanEvents = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/scan-events`, { credentials: 'include' })
+                if (!res.ok) throw new Error('Failed to fetch scan events')
+                const data = await res.json()
+                const mapped = (data.events || []).slice(0, 5).map(e => ({ event_time: e.event_time, parcel_id: e.parcel?.tracking_code || e.parcel_id, hub_id: e.hub?.hub_name || e.hub_id, courier_id: e.courier?.employee_id || e.courier_id, event_type: e.event_type }))
+                setRecentScanEvent(mapped)
+            } catch (err) {
+                console.error('Scan events fetch error', err)
+                setRecentScanEvent([])
+            }
+        }
+
+        fetchParcels()
+        fetchRoutes()
+        fetchDrivers()
+        fetchScanEvents()
+
+    }, [])
 
     return (
         <div className="flex h-screen overflow-hidden">
             <Sidebar>
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" active/>
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')}/>
-                <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')}/>
+                <SidebarItem icon={<User />} text="Record" onClick={() => router.push('/admin/management/records')}/>
                 <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')}/>
                 <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')}/>
                 <SidebarItem icon={<Truck />} text="Courier Management" onClick={() => router.push('/admin/management/courier')}/>

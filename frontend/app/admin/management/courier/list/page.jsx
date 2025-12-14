@@ -6,6 +6,7 @@ import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, User, Truck, War
 import { useAdminAuth } from '@/context/adminAuthContext';
 import Sidebar, { SidebarItem, SubSidebarItem } from '@/components/AdminSidebar';
 import CourierForm from '@/components/CourierForm';
+import { fePointLight, form } from 'framer-motion/client';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
 
@@ -19,6 +20,8 @@ export default function CourierList() {
     const [success, setSuccess] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
+    const [showEdit, setShowEdit] = useState(false);
+    const [editingCourier, setEditingCourier] = useState(null);
     const [vehicleLoading, setVehicleLoading] = useState(false);
 
     // Fetch all necessary data
@@ -108,35 +111,138 @@ export default function CourierList() {
             setSuccess(null);
 
             console.log('Submitting form data:', formData);
-            console.log('Submitting form data:', formData.vehicle_type);
+            // console.log('Submitting form vehicle_type data:', formData.vehicle_type);
 
             if (formData.vehicle_type === "Company") {
-                console.log("COM");
+                const responseCourier = await fetch(`${API_BASE_URL}/api/admin/couriers`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        first_name: formData.first_name,
+                        last_name: formData.last_name,
+                        phone: formData.phone,
+                        password: formData.password,
+                        role: formData.role,
+                        active: formData.active,
+                        employee_id: formData.employee_id,
+                    })
+                });
+                if (!responseCourier.ok) {
+                    throw new Error(responseCourier.message);
+                } else {
+                    const createdCourier = await responseCourier.json();
+                    // console.log("", createdCourier);
+                    const responseVehicle = await fetch(`${API_BASE_URL}/api/admin/vehicles/${formData.vehicle_details.vehicle_id}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        credentials: "include",
+                        body: JSON.stringify({
+                            assigned_courier: createdCourier._id,
+                        })
+                    });
+
+                    if (!responseVehicle.ok) {
+                        setError(responseVehicle.message);
+                        throw new Error(responseCourier.message);
+                    }
+                    setSuccess('Courier created successfully!');
+                }
             }
             if (formData.vehicle_type === "Courier") {
-                console.log("COU");
+                const responseCourier = await fetch(`${API_BASE_URL}/api/admin/couriers`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        first_name: formData.first_name,
+                        last_name: formData.last_name,
+                        phone: formData.phone,
+                        password: formData.password,
+                        role: formData.role,
+                        active: formData.active,
+                        employee_id: formData.employee_id,
+                    })
+                });
+                if (!responseCourier.ok) {
+                    throw Error(responseCourier.message);
+                } else {
+                    const createdCourier = await responseCourier.json();
+                    const responseVehicle = await fetch(`${API_BASE_URL}/api/admin/vehicles`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        credentials: "include",
+                        body: JSON.stringify({
+                            plate_raw: formData.vehicle_details.plate_raw,
+                            province: formData.vehicle_details.province,
+                            vehicle_type: formData.vehicle_details.vehicle_type,
+                            capacity_kg: formData.vehicle_details.capacity_kg,
+                            owner: formData.vehicle_details.owner,
+                            assigned_courier: createdCourier._id
+                        })
+                    });
+
+                    if (!responseVehicle.ok) {
+                        setError(responseVehicle.message);
+                        throw new Error(responseVehicle.message);
+                    }
+                    setSuccess('Courier created successfully!');
+                }
             }
             if (formData.vehicle_type === "Other") {
-                console.log("OTH");
+                const responseCourier = await fetch(`${API_BASE_URL}/api/admin/couriers`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        first_name: formData.first_name,
+                        last_name: formData.last_name,
+                        phone: formData.phone,
+                        password: formData.password,
+                        role: formData.role,
+                        active: formData.active,
+                        employee_id: formData.employee_id,
+                    })
+                });
+                if (!responseCourier.ok) {
+                    throw Error(responseCourier.message);
+                } else {
+                    console.log(formData);
+                    const createdCourier = await responseCourier.json();
+                    const responseVehicle = await fetch(`${API_BASE_URL}/api/admin/vehicles`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        credentials: "include",
+                        body: JSON.stringify({
+                            plate_raw: formData.vehicle_details.plate_raw,
+                            province: formData.vehicle_details.province,
+                            vehicle_type: formData.vehicle_details.vehicle_type,
+                            capacity_kg: formData.vehicle_details.capacity_kg,
+                            owner: formData.vehicle_details.owner,
+                            assigned_courier: createdCourier._id,
+                            notes: formData.vehicle_details.custom_owner,
+                        })
+                    });
+
+                    if (!responseVehicle.ok) {
+                        setError(responseVehicle.message);
+                        throw new Error(responseVehicle.message);
+                    }
+                    setSuccess('Courier created successfully!');
+                }
             }
-
-            // const response = await fetch(`${API_BASE_URL}/api/admin/couriers`, {
-            //     method: "POST",
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     credentials: "include",
-            //     body: JSON.stringify(formData),
-            // });
-
-            // const responseData = await response.json();
-
-            // if (!response.ok) {
-            //     throw new Error(responseData.message || `Error: ${response.status}`);
-            // }
-
-            // Show success message
-            setSuccess('Courier created successfully!');
 
             // Refresh couriers list
             const couriersResponse = await fetch(`${API_BASE_URL}/api/admin/couriers`, {
@@ -180,9 +286,8 @@ export default function CourierList() {
                 <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')} />
                 <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')} />
                 <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')} />
-                <SidebarItem icon={<Truck />} text="Courier Management" onClick={() => router.push('/admin/management/courier')} />
+                <SidebarItem icon={<Truck />} text="Courier Management" active/>
                 <SubSidebarItem text="Courier List" active />
-                <SubSidebarItem text="Create/Update Courier" onClick={() => router.push('/admin/management/courier/create')} />
                 <SubSidebarItem text="Courier Detail" onClick={() => router.push('/admin/management/courier/detail')} />
                 <SidebarItem icon={<Boxes />} text="Scan Event Management" onClick={() => router.push('/admin/management/scan_event')} />
                 <SidebarItem icon={<Fullscreen />} text="Proof of Delivery Management" onClick={() => router.push('/admin/management/pod')} />
@@ -234,9 +339,23 @@ export default function CourierList() {
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {couriers.map((c) => (
-                                    <tr key={c._id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3">
-                                            {c.first_name} {c.last_name}
+                                    <tr
+                                        key={c._id}
+                                        className="hover:bg-gray-50 cursor-pointer"
+                                        onClick={() => router.push(`/admin/management/courier/detail?id=${c._id}`)}
+                                    >
+                                        <td className="px-4 py-3 flex items-center gap-2">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingCourier(c);
+                                                    setShowEdit(true);
+                                                }}
+                                                className="px-2 py-1 text-sm border rounded bg-white hover:bg-gray-50"
+                                            >
+                                                Edit
+                                            </button>
+                                            <span>{c.first_name} {c.last_name}</span>
                                         </td>
                                         <td className="px-4 py-3 font-medium">{c.employee_id}</td>
                                         <td className="px-4 py-3">{c.phone}</td>
@@ -277,6 +396,41 @@ export default function CourierList() {
                             onSubmit={handleCreateCourier}
                             onCancel={() => setShowCreate(false)}
                             submitText="Create Courier"
+                            provinces={provinces}
+                            companyVehicles={companyVehicles}
+                            courierVehicles={courierVehicles}
+                            onSearchVehicles={searchVehicles}
+                            vehicleLoading={vehicleLoading}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Edit modal (looks like Create) */}
+            {showEdit && editingCourier && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-semibold">Edit Courier</h2>
+                            <button
+                                onClick={() => { setShowEdit(false); setEditingCourier(null); }}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <CourierForm
+                            initialData={editingCourier}
+                            onSubmit={(payload) => {
+                                // No backend update implemented yet — just close and update locally
+                                console.log('Edit payload:', payload);
+                                setCouriers((prev) => prev.map(it => (it._id === editingCourier._id ? { ...it, ...payload } : it)));
+                                setShowEdit(false);
+                                setEditingCourier(null);
+                            }}
+                            onCancel={() => { setShowEdit(false); setEditingCourier(null); }}
+                            submitText="Update Courier"
                             provinces={provinces}
                             companyVehicles={companyVehicles}
                             courierVehicles={courierVehicles}

@@ -40,7 +40,7 @@ export default function RecipientEdit({ open, onClose, recipient, onUpdate }) {
     }
 
     return (
-        <Dialog open={open} onOpenChange={(v) => !v && onClose()}>            
+        <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Edit Recipient</DialogTitle>

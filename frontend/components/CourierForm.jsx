@@ -33,7 +33,7 @@ export default function CourierForm({
         province: '',
         vehicle_type: '',
         capacity_kg: '',
-        Owner: 'Courier'
+        owner: 'Courier'
     });
     const [otherVehicle, setOtherVehicle] = useState({
         plate_raw: '',
@@ -41,7 +41,7 @@ export default function CourierForm({
         province: '',
         vehicle_type: '',
         capacity_kg: '',
-        Owner: '',
+        owner: 'Courier',
         custom_owner: ''
     });
     
@@ -139,7 +139,6 @@ export default function CourierForm({
             case 'Other':
                 formData.vehicle_details = {
                     ...otherVehicle,
-                    Owner: otherVehicle.custom_owner,
                     type: 'other'
                 };
                 break;

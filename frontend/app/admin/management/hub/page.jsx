@@ -1,101 +1,243 @@
 "use client"
 
-import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, SquarePen, SquarePlus, Truck, User, Warehouse } from "lucide-react"
+import React, { useEffect, useState } from "react"
+import {
+    Boxes,
+    BusFront,
+    Fullscreen,
+    LayoutDashboard,
+    Package,
+    SquarePen,
+    SquarePlus,
+    Truck,
+    User,
+    Warehouse,
+} from "lucide-react"
+
+import Sidebar, { SidebarItem } from "@/components/AdminSidebar"
 import HubCreate from "@/components/CreateHub"
 import HubEdit from "@/components/EditHub"
-import React from "react"
-import Sidebar, { SidebarItem } from "@/components/AdminSidebar"
 import { useRouter } from "next/navigation"
 
-export default function hubManagement() {
+const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862"
+
+export default function HubManagement() {
     const router = useRouter()
-    const [openCreate, setOpenCreate] = React.useState(false)
-    const [openEdit, setOpenEdit] = React.useState(false)
-    const [hub, setHub] = React.useState([
-        { hub_name: 'Hub A', address_text: 'หมูทอด St', sub_district: 'แม่หมูทอด', status: 'Active' },
-        { hub_name: 'Hub B', address_text: 'หมูย่าง St', sub_district: 'แม่หมูย่าง', status: 'Not Active' },
-        { hub_name: 'Hub C', address_text: 'หมูปิ้ง St', sub_district: 'แม่หมูปิ้ง', status: 'Active' },
-        { hub_name: 'Hub D', address_text: 'หมูนึ่ง St', sub_district: 'แม่หมูนึ่ง', status: 'Active' },
-        { hub_name: 'Hub E', address_text: 'หมูต้ม St', sub_district: 'แม่หมูต้ม', status: 'Not Active' },
-        { hub_name: 'Hub F', address_text: 'หมูตุ๋น St', sub_district: 'แม่หมูตุ๋น', status: 'Active' },
-    ])
-    const [selectedHub, setSelectedHub] = React.useState(null)
 
-    const activate = (hub_name) => {
-        setHub((prev) => prev.map(h => h.hub_name === hub_name ? { ...h, status: 'Active' } : h))
+    const [hubs, setHubs] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
+
+    const [openCreate, setOpenCreate] = useState(false)
+    const [openEdit, setOpenEdit] = useState(false)
+    const [selectedHub, setSelectedHub] = useState(null)
+
+    /* -----------------------------------
+       Fetch hubs (GET)
+    ----------------------------------- */
+    const fetchHubs = async () => {
+        try {
+            setLoading(true)
+            setError(null)
+
+            const res = await fetch(`${API_BASE_URL}/api/admin/hubs`, {
+                credentials: "include",
+            })
+
+            if (!res.ok) throw new Error("Failed to fetch hubs")
+
+            const data = await res.json()
+
+            const mapped = (data.hubs || []).map((h) => ({
+                _id: h._id,
+                hub_name: h.hub_name,
+                address_text: h.address_text || "",
+                sub_district: h.sub_district || "",
+                active: !!h.active,
+            }))
+
+            setHubs(mapped)
+        } catch (err) {
+            console.error(err)
+            setError(err.message)
+        } finally {
+            setLoading(false)
+        }
     }
 
-    const deactivate = (hub_name) => {
-        setHub((prev) => prev.map(h => h.hub_name === hub_name ? { ...h, status: 'Not Active' } : h))
+    useEffect(() => {
+        fetchHubs()
+    }, [])
+
+    /* -----------------------------------
+       Add hub (POST)
+    ----------------------------------- */
+    const handleAddHub = (newHub) => {
+        setHubs((prev) => [...prev, newHub])
     }
 
-    const addHub = (newHub) => {
-        setHub((prev) => [...prev, newHub])
+    /* -----------------------------------
+       Update hub (local update)
+    ----------------------------------- */
+    const handleUpdateHub = (updatedHub) => {
+        setHubs((prev) =>
+            prev.map((h) => (h._id === updatedHub._id ? updatedHub : h))
+        )
     }
 
-    const updateHub = (updatedHub) => {
-        setHub((prev) => prev.map(h => h.hub_name === updatedHub.originalHubName ? { hub_name: updatedHub.hub_name, address_text: updatedHub.address_text, sub_district: updatedHub.sub_district, status: updatedHub.status } : h))
+    /* -----------------------------------
+       Delete hub (DELETE)
+    ----------------------------------- */
+    const handleDeleteHub = async (hubId) => {
+        if (!confirm("Delete this hub?")) return
+
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/api/admin/hubs/${hubId}`,
+                {
+                    method: "DELETE",
+                    credentials: "include",
+                }
+            )
+
+            if (!res.ok) throw new Error("Failed to delete hub")
+
+            setHubs((prev) => prev.filter((h) => h._id !== hubId))
+        } catch (err) {
+            console.error(err)
+            alert(err.message || "Delete failed")
+        }
     }
 
+    /* -----------------------------------
+       Render
+    ----------------------------------- */
     return (
         <div className="flex h-screen">
             <Sidebar>
-                <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')}/>
-                <SidebarItem icon={<Warehouse />} text="Hub Management" active/>
-                <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')}/>
-                <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')}/>
-                <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')}/>
-                <SidebarItem icon={<Truck />} text="Courier Management" onClick={() => router.push('/admin/management/courier')}/>
-                <SidebarItem icon={<Boxes />} text="Scan Event Management" onClick={() => router.push('/admin/management/scan_event')}/>
-                <SidebarItem icon={<Fullscreen />} text="Proof of Delivery Management" onClick={() => router.push('/admin/management/pod')}/>
+                <SidebarItem
+                    icon={<LayoutDashboard />}
+                    text="Dashboard"
+                    onClick={() => router.push("/admin/dashboard")}
+                />
+                <SidebarItem icon={<Warehouse />} text="Hub Management" active />
+                <SidebarItem
+                    icon={<User />}
+                    text="Record"
+                    onClick={() => router.push("/admin/management/records")}
+                />
+                <SidebarItem
+                    icon={<Package />}
+                    text="Parcel Management"
+                    onClick={() => router.push("/admin/management/parcel")}
+                />
+                <SidebarItem
+                    icon={<BusFront />}
+                    text="Route Management"
+                    onClick={() => router.push("/admin/management/route")}
+                />
+                <SidebarItem
+                    icon={<Truck />}
+                    text="Courier Management"
+                    onClick={() => router.push("/admin/management/courier")}
+                />
+                <SidebarItem
+                    icon={<Boxes />}
+                    text="Scan Event Management"
+                    onClick={() => router.push("/admin/management/scan_event")}
+                />
+                <SidebarItem
+                    icon={<Fullscreen />}
+                    text="Proof of Delivery Management"
+                    onClick={() => router.push("/admin/management/pod")}
+                />
             </Sidebar>
 
             <main className="flex-1 p-6 bg-gray-50 overflow-auto">
-                <div className="font-semibold text-[30px]">
-                    Hub Management
-                </div>
+                <div className="font-semibold text-[30px]">Hub Management</div>
 
-                <div className="mt-6 p-6 w-full border border-white bg-white rounded-lg shadow-lg">
-                    <div className="flex flex-row items-center gap-2 justify-between">
-                        <div className="flex flex-row items-center gap-2">
+                <div className="mt-6 p-6 bg-white rounded-lg shadow-lg">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
                             <Warehouse className="text-amber-600" />
                             <div>
-                                <div className="font-semibold text-[20px]">All Hub</div>
-                                <div className="text-[14px] text-gray-600">You can create, edit, activate, and deactivate all hubs</div>
+                                <div className="font-semibold text-[20px]">All Hubs</div>
+                                <div className="text-[14px] text-gray-600">
+                                    Manage all hubs
+                                </div>
                             </div>
                         </div>
 
-                        <div className="flex flex-row items-center gap-2">
-                            <div>
-                                <button onClick={() => setOpenCreate(true)} className="flex flex-row gap-2 px-2 py-1 text-[14px] text-white bg-amber-600 rounded-lg"><SquarePlus />Create Hub</button>
-                                <HubCreate open={openCreate} onClose={() => setOpenCreate(false)} onCreate={addHub} />
-                            </div>
-                        </div>
+                        <button
+                            onClick={() => setOpenCreate(true)}
+                            className="flex gap-2 px-3 py-2 text-sm text-white bg-amber-600 rounded-lg"
+                        >
+                            <SquarePlus />
+                            Create Hub
+                        </button>
                     </div>
 
-                    <div className="mt-6">
-                        {hub.slice(0, 7).map(h => (
-                            <div className="flex flex-row items-center justify-between mt-2 px-2 py-2 border border-gray-400 rounded-lg">
+                    {loading && <div className="mt-6">Loading…</div>}
+                    {error && <div className="mt-6 text-red-600">{error}</div>}
+
+                    <div className="mt-6 space-y-3">
+                        {hubs.map((h) => (
+                            <div
+                                key={h._id}
+                                className="flex justify-between items-center p-3 border rounded-lg"
+                            >
                                 <div>
-                                    <div className="font-semibold text-[18px]">{h.hub_name}</div>
-                                    <div className="text-[14px] text-gray-500">{h.address_text} - {h.sub_district}</div>
+                                    <div className="font-semibold">{h.hub_name}</div>
+                                    <div className="text-sm text-gray-500">
+                                        {h.address_text} — {h.sub_district}
+                                    </div>
                                 </div>
 
-                                <div className="flex flex-row gap-2">
-                                    <div className={`text-[12px] px-2 py-1 rounded-full ${h.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{h.status}</div>
-                                    <button onClick={() => activate(h.hub_name)} disabled={h.status !== 'Not Active'} className="text-sm px-2 py-1 rounded bg-lime-600 text-white disabled:bg-gray-200">Activate</button>
-                                    <button onClick={() => deactivate(h.hub_name)} disabled={h.status !== 'Active'} className="text-sm px-2 py-1 rounded bg-red-600 text-white disabled:bg-gray-200">Deactivate</button>
-                                    <button 
+                                <div className="flex items-center gap-2">
+                                    <span
+                                        className={`text-xs px-2 py-1 rounded-full ${h.active
+                                                ? "bg-green-100 text-green-800"
+                                                : "bg-red-100 text-red-800"
+                                            }`}
+                                    >
+                                        {h.active ? "Active" : "Not Active"}
+                                    </span>
+
+                                    <button
                                         onClick={() => {
                                             setSelectedHub(h)
                                             setOpenEdit(true)
                                         }}
-                                        className="flex flex-row gap-2 px-2 py-1 text-[14px] text-white bg-amber-600 rounded-lg"><SquarePen />Edit Hub</button>
+                                        className="flex gap-1 px-2 py-1 text-sm text-white bg-amber-600 rounded"
+                                    >
+                                        <SquarePen />
+                                        Edit
+                                    </button>
+
+                                    <button
+                                        onClick={() => handleDeleteHub(h._id)}
+                                        className="px-2 py-1 text-sm text-white bg-gray-700 rounded"
+                                    >
+                                        Delete
+                                    </button>
                                 </div>
                             </div>
                         ))}
-                        <HubEdit open={openEdit} onClose={() => setOpenEdit(false)} hub={selectedHub} onUpdate={updateHub} />
                     </div>
+
+                    <HubCreate
+                        open={openCreate}
+                        onClose={() => setOpenCreate(false)}
+                        onCreate={handleAddHub}
+                    />
+
+                    <HubEdit
+                        open={openEdit}
+                        onClose={() => setOpenEdit(false)}
+                        hub={selectedHub}
+                        onUpdate={handleUpdateHub}
+                    />
                 </div>
             </main>
         </div>
