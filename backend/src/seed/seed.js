@@ -68,7 +68,7 @@ async function InitializeDatabaseStructures() {
                     province: "กรุงเทพมหานคร",
                     vehicle_type: "pickup",
                     capacity_kg: 1000,
-                    Owner: "Company",
+                    owner: "Company",
                     assigned_courier: null // Ready to be assigned
                 },
                 {
@@ -77,7 +77,7 @@ async function InitializeDatabaseStructures() {
                     province: "นนทบุรี",
                     vehicle_type: "pickup",
                     capacity_kg: 1200,
-                    Owner: "Company",
+                    owner: "Company",
                     assigned_courier: null
                 },
                 {
@@ -86,7 +86,7 @@ async function InitializeDatabaseStructures() {
                     province: "ปทุมธานี",
                     vehicle_type: "truck",
                     capacity_kg: 5000,
-                    Owner: "Company",
+                    owner: "Company",
                     assigned_courier: null
                 },
                 {
@@ -95,7 +95,7 @@ async function InitializeDatabaseStructures() {
                     province: "สมุทรปราการ",
                     vehicle_type: "truck",
                     capacity_kg: 8000,
-                    Owner: "Company",
+                    owner: "Company",
                     assigned_courier: null
                 },
                 {
@@ -104,7 +104,7 @@ async function InitializeDatabaseStructures() {
                     province: "เชียงใหม่",
                     vehicle_type: "motorcycle",
                     capacity_kg: 40,
-                    Owner: "Company",
+                    owner: "Company",
                     assigned_courier: null
                 },
                 {
@@ -113,7 +113,7 @@ async function InitializeDatabaseStructures() {
                     province: "ชลบุรี",
                     vehicle_type: "pickup",
                     capacity_kg: 1100,
-                    Owner: "Company",
+                    owner: "Company",
                     assigned_courier: null
                 }
             ])

@@ -2,99 +2,136 @@
 
 import Sidebar, { SidebarItem } from "@/components/driversidebar"
 import { useRouter } from "next/navigation"
-import { Play, CheckSquare, MapPin, Package, Truck, CheckCircle } from "lucide-react"
+import { Play, CheckSquare, MapPin, Package, Truck } from "lucide-react"
 import React, { useEffect, useState } from "react"
 import { useEmployeeAuth } from "@/context/employeeAuthContext"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862"
 
 export default function Courier() {
-    const router = useRouter()
-    const { employee } = useEmployeeAuth();
-    const [routeStarted, setRouteStarted] = useState(false)
-    const [parcelsCount, setParcelsCount] = useState(0)
-    const [pickups, setPickups] = useState([])
-    const [deliveries, setDeliveries] = useState([])
-    const [todaysRoute, setTodaysRoute] = useState(null)
-    const [openRoutes, setOpenRoutes] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
+  const router = useRouter()
+  const { employee } = useEmployeeAuth()
 
-    const startRoute = () => {
-        setRouteStarted(true)
-        // example: lock parcels to remaining count or adjust
-        setParcelsCount((c) => c)
-    }
+  const [routeStarted, setRouteStarted] = useState(false)
+  const [parcelsCount, setParcelsCount] = useState(0)
+  const [deliveries, setDeliveries] = useState([])
+  const [todaysRoute, setTodaysRoute] = useState(null)
+  const [openRoutes, setOpenRoutes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-    const completeRoute = () => {
-        setRouteStarted(false)
-        // example: mark some parcels delivered
-        setParcelsCount((c) => Math.max(0, c - Math.floor(Math.random() * 5)))
-    }
+  const [acceptedRequests, setAcceptedRequests] = useState([])
+  const [acceptedLoading, setAcceptedLoading] = useState(false)
+  const [acceptedError, setAcceptedError] = useState(null)
+
+    useEffect(() => {
+        if (!employee) {
+            router.push("/employee/login")
+        }
+    }, [employee, router])
 
     const fetchDashboard = async () => {
-        if (!employee) return;
-        setLoading(true);
-        setError(null);
+        if (!employee) return
+        setLoading(true)
+        setError(null)
         try {
             // today's route and parcels
-            const r1 = await fetch(`${API_BASE_URL}/api/employee/route/today`, { credentials: 'include' });
-            const routeData = r1.ok ? await r1.json() : null;
+            const r1 = await fetch(
+                `${API_BASE_URL}/api/employee/route/today`,
+                { credentials: "include" }
+            )
+            const routeData = r1.ok ? await r1.json() : null
             if (routeData?.data?.route) {
-                setTodaysRoute(routeData.data.route);
-                setDeliveries(routeData.data.parcels || []);
-                setRouteStarted(routeData.data.route.status === 'out_for_delivery');
+                setTodaysRoute(routeData.data.route)
+                setDeliveries(routeData.data.parcels || [])
+                setRouteStarted(routeData.data.route.status === "out_for_delivery")
             } else {
-                setTodaysRoute(null);
-                setDeliveries([]);
+                setTodaysRoute(null)
+                setDeliveries([])
             }
 
-            // pickups
-            const r2 = await fetch(`${API_BASE_URL}/api/employee/pickups`, { credentials: 'include' });
-            const pickupsData = r2.ok ? await r2.json() : null;
-            setPickups(pickupsData?.data?.pickups || []);
-
             // count parcels assigned
-            const r3 = await fetch(`${API_BASE_URL}/api/employee/parcels`, { credentials: 'include' });
-            const parcelsData = r3.ok ? await r3.json() : null;
-            setParcelsCount(parcelsData?.data?.stats?.total || 0);
+            const r3 = await fetch(
+                `${API_BASE_URL}/api/employee/parcels`,
+                { credentials: "include" }
+            )
+            const parcelsData = r3.ok ? await r3.json() : null
+            setParcelsCount(parcelsData?.data?.stats?.total || 0)
 
             // open routes
-            const r4 = await fetch(`${API_BASE_URL}/api/employee/routes/open`, { credentials: 'include' });
-            const openData = r4.ok ? await r4.json() : null;
-            setOpenRoutes(openData?.data?.routes || []);
+            const r4 = await fetch(
+                `${API_BASE_URL}/api/employee/routes/open`,
+                { credentials: "include" }
+            )
+            const openData = r4.ok ? await r4.json() : null
+            setOpenRoutes(openData?.data?.routes || [])
         } catch (err) {
-            console.error(err);
-            setError('Failed to load dashboard data');
+            console.error(err)
+            setError("Failed to load dashboard data")
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
     }
 
     useEffect(() => {
-        if (employee) fetchDashboard();
-    }, [employee]);
+        if (employee) fetchDashboard()
+    }, [employee])
+
+    useEffect(() => {
+        const fetchAcceptedRequests = async () => {
+            if (!employee) return
+            setAcceptedLoading(true)
+            setAcceptedError(null)
+            try {
+                const res = await fetch(
+                    `${API_BASE_URL}/api/courier/pickup-requests`,
+                    { credentials: "include" }
+                )
+                const data = await res.json()
+
+                if (!res.ok || data.success === false) {
+                    throw new Error(
+                        data.error || data.message || "Failed to load accepted requests"
+                    )
+                }
+
+                const active = (data.data || []).filter((r) =>
+                    ["assigned", "in_progress"].includes(r.status)
+                )
+                setAcceptedRequests(active)
+            } catch (err) {
+                setAcceptedError(err.message || "Error loading accepted requests")
+            } finally {
+                setAcceptedLoading(false)
+            }
+        }
+
+        fetchAcceptedRequests()
+    }, [employee])
+
+    const startRoute = () => {
+        setRouteStarted(true)
+    }
+
+    const completeRoute = () => {
+        setRouteStarted(false)
+    }
 
     const acceptRoute = async (routeId) => {
-        if (!confirm('Accept this route?')) return;
+        if (!confirm("Accept this route?")) return
         try {
-            const res = await fetch(`${API_BASE_URL}/api/employee/routes/${routeId}/accept`, { method: 'POST', credentials: 'include' });
-            if (!res.ok) throw new Error(await res.text());
-            await fetchDashboard();
-            alert('Route accepted');
+            const res = await fetch(
+                `${API_BASE_URL}/api/employee/routes/${routeId}/accept`,
+                { method: "POST", credentials: "include" }
+            )
+            if (!res.ok) throw new Error(await res.text())
+            await fetchDashboard()
+            alert("Route accepted")
         } catch (err) {
-            console.error(err);
-            alert('Failed to accept route');
+            console.error(err)
+            alert("Failed to accept route")
         }
-    }
-
-    const markCollected = (id) => {
-        setPickups((prev) => prev.map(p => (p._id === id || p.id === id) ? { ...p, status: 'Collected' } : p))
-    }
-
-    const markDelivered = (id) => {
-        setDeliveries((prev) => prev.map(d => d.id === id ? { ...d, status: 'Delivered' } : d))
-        setParcelsCount((c) => Math.max(0, c - 1))
     }
 
     return (
@@ -202,39 +239,73 @@ export default function Courier() {
 
                 {/* Pickup and Delivery sections */}
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-md bg-amber-50">
-                                    <Package className="text-amber-600" />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold">Pickups (tmp)</h3>
-                                    <div className="text-sm text-gray-500">Incoming parcels from senders to hub</div>
-                                </div>
-                            </div>
-                            <div className="text-sm text-gray-600">Pending: {pickups.filter(p => p.status === 'Pending').length}</div>
-                        </div>
+                                        <div className="bg-white rounded-lg shadow p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 rounded-md bg-amber-50">
+                                                        <Package className="text-amber-600" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg font-semibold">Accepted pickup requests</h3>
+                                                        <div className="text-sm text-gray-500">
+                                                            Requests you've already accepted from senders
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-sm text-gray-600">
+                                                    Active: {acceptedRequests.length}
+                                                </div>
+                                            </div>
 
-                        <ul className="mt-4 space-y-2">
-                            {pickups.slice(0, 4).map(p => (
-                                <li key={p._id} className="flex items-center justify-between p-2 border rounded">
-                                    <div>
-                                        <div className="font-medium">{p._id} — {p.requester?.first_name} {p.requester?.last_name}</div>
-                                        <div className="text-xs text-gray-500">{p.pickup_location?.address_text || p.requester?.phone}</div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'assigned' || p.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{p.status}</span>
-                                        <button onClick={() => markCollected(p._id)} disabled={p.status !== 'assigned'} className="text-sm px-2 py-1 rounded bg-amber-600 text-white disabled:bg-gray-200">Collect</button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-
-                        <div className="mt-4 text-right">
-                            <button onClick={() => router.push('/employee/courier/pickups')} className="text-sm text-blue-600 hover:underline">View All</button>
-                        </div>
-                    </div>
+                                            <div className="mt-4">
+                                                {acceptedLoading ? (
+                                                    <div className="text-sm text-gray-400">
+                                                        Loading accepted requests...
+                                                    </div>
+                                                ) : acceptedError ? (
+                                                    <div className="text-sm text-red-500">
+                                                        {acceptedError}
+                                                    </div>
+                                                ) : acceptedRequests.length === 0 ? (
+                                                    <div className="text-sm text-gray-500">
+                                                        You have no accepted pickup requests yet.
+                                                    </div>
+                                                ) : (
+                                                    <ul className="space-y-2">
+                                                        {acceptedRequests.slice(0, 4).map((r) => (
+                                                            <li
+                                                                key={r._id}
+                                                                className="flex items-center justify-between p-2 border rounded"
+                                                            >
+                                                                <div>
+                                                                    <div className="font-medium text-sm">
+                                                                        {r.request_code || r._id}
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500">
+                                                                        {r.requester?.first_name}{" "}
+                                                                        {r.requester?.last_name}
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500 truncate max-w-[220px]">
+                                                                        {r.pickup_location?.address_text}
+                                                                    </div>
+                                                                </div>
+                                                                <span
+                                                                    className={`text-xs px-2 py-1 rounded-full ${
+                                                                        r.status === "assigned"
+                                                                            ? "bg-blue-100 text-blue-800"
+                                                                            : "bg-green-100 text-green-800"
+                                                                    }`}
+                                                                >
+                                                                    {r.status === "assigned"
+                                                                        ? "Assigned"
+                                                                        : "In progress"}
+                                                                </span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
+                                        </div>
 
                     <div className="bg-white rounded-lg shadow p-4">
                         <div className="flex items-center justify-between">

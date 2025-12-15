@@ -9,6 +9,7 @@ import pickupRequestRoutes from "./routes/pickupRequestRoutes.js";
 import pickupRequestItemRoutes from "./routes/pickupRequestItemRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
+import courierRoutes from "./routes/courierRoutes.js";
 import InitializeDatabaseStructures from "./seed/seed.js";
 
 dotenv.config();
@@ -54,6 +55,8 @@ app.use("/api/admin", adminRoutes);
 
 // Employee routes (cookie-based auth)
 app.use("/api/employee", employeeRoutes);
+// Courier routes
+app.use("/api/courier", courierRoutes);
 
 // connect DB + start
 const PORT = process.env.PORT || 4826;

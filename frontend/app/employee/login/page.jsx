@@ -19,7 +19,7 @@ export default function EmployeeLogin() {
     // Redirect based on employee role after login
     React.useEffect(() => {
         if (employee) {
-            console.log("Logged in employee:", employee);
+            // console.log("Logged in employee:", employee);
             switch (employee.role) {
                 case "courier":
                     router.push("/employee/courier");

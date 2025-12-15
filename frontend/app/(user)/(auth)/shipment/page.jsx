@@ -83,6 +83,27 @@ export default function ShipmentPage() {
     }
   }, [usedLocation, getOrCreateDraft]);
 
+  const handleEditItem = (item) => {
+    // Populate form with item data
+    setShipmentDraftData({
+      recieverFirstName: item.recipient.first_name,
+      recieverLastName: item.recipient.last_name,
+      recieverContact: item.recipient.phone,
+      recieverAddressText: item.recipient.address_text,
+      recieverSubDistrict: item.recipient.sub_district,
+      estimatedWeight: item.estimated_weight,
+      size: item.size,
+      quantity: item.quantity,
+    });
+    
+    // Set editing state
+    setIsEditing(true);
+    setEditingItemId(item._id);
+    
+    // Open the form
+    setOpenShipmentForm(true);
+  };
+
   const handleSubmitShipmentDraft = async (e) => {
     e.preventDefault();
     
@@ -106,8 +127,13 @@ export default function ShipmentPage() {
         quantity: Number(shipmentDraftData.quantity),
       };
 
-      // add item (fetch addItem) to the draft
-      await addItem(draft._id, itemData);
+      if (isEditing && editingItemId) {
+        // Update existing item
+        await updateItem(editingItemId, itemData);
+      } else {
+        // Add new item to the draft
+        await addItem(draft._id, itemData);
+      }
       
       // reset shipmentDraftData
       setShipmentDraftData({
@@ -121,10 +147,14 @@ export default function ShipmentPage() {
         quantity: 1,
       });
       
+      // Reset editing state
+      setIsEditing(false);
+      setEditingItemId(null);
+      
       // Close the form after successful submission
       setOpenShipmentForm(false);
     } catch (error) {
-      console.error("Error adding item:", error);
+      console.error(isEditing ? "Error updating item:" : "Error adding item:", error);
       // Optionally show error to user
     }
   }
@@ -133,6 +163,8 @@ export default function ShipmentPage() {
     useState(false);
   const [openListLocationDialog, setOpenListLocationDialog] = useState(false);
   const [openShipmentForm, setOpenShipmentForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingItemId, setEditingItemId] = useState(null);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -245,12 +277,17 @@ export default function ShipmentPage() {
               onSubmitShipmentDraft={handleSubmitShipmentDraft}
               shipmentDraftData={shipmentDraftData}
               setShipmentDraftData={setShipmentDraftData}
+              isEditing={isEditing}
             />
           ) : (
             <div className="flex justify-end">
               <button
-                onClick={() => setOpenShipmentForm(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditingItemId(null);
+                  setOpenShipmentForm(true);
+                }}
+                className="w-full bg-amber-500 text-white px-4 py-2 rounded-md hover:bg-amber-600"
               >
                 Create Shipment
               </button>
@@ -260,6 +297,13 @@ export default function ShipmentPage() {
         <div className="flex-1 ">
           <ShipmentCart 
             usedLocation={usedLocation}
+            onEditItem={handleEditItem}
+            items={items}
+            loading={pickupRequestLoading}
+            error={pickupRequestError}
+            deleteItem={deleteItem}
+            submitRequest={submitRequest}
+            draftId={draft?._id}
           />
         </div>
       </div>
