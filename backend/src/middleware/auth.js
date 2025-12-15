@@ -95,7 +95,12 @@ export const requireAdmin = (req, res, next) => {
 
 export const authenticate = async (req, res, next) => {
 	try {
-		const token = req.header("Authorization")?.replace("Bearer ", "");
+		let token = req.header("Authorization")?.replace("Bearer ", "");
+
+		// Fallback for employee JWT stored in cookie (courier frontend uses cookies)
+		if (!token && req.cookies?.employeeAccessToken) {
+			token = req.cookies.employeeAccessToken;
+		}
 
 		if (!token) {
 			return res.status(401).json({
@@ -104,7 +109,9 @@ export const authenticate = async (req, res, next) => {
 			});
 		}
 
-		const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		// Use the same verification as other parts of the app to avoid
+		// mismatched secrets between generation and verification.
+		const decoded = verifyAccessToken(token);
 		const employee = await Employee.findById(decoded.id).select("-password");
 
 		if (!employee) {

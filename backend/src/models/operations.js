@@ -8,6 +8,8 @@ const { ObjectId } = mongoose.Schema.Types;
 const PickupRequestSchema = new mongoose.Schema(
   {
     requester: { type: ObjectId, ref: "Sender", required: true },
+    // human-friendly request identifier (e.g., RQ-20251215-ABC123)
+    request_code: { type: String, unique: true },
     pickup_location: {
       address_text: { type: String, required: true },
       sub_district: { type: String, required: true },
@@ -23,6 +25,35 @@ const PickupRequestSchema = new mongoose.Schema(
   },
   { timestamps: { createdAt: "requested_at", updatedAt: "updated_at" } }
 );
+
+// Generate a readable unique request code on creation if missing
+PickupRequestSchema.pre("save", async function (next) {
+  if (!this.isNew || this.request_code) return next();
+
+  try {
+    let unique = false;
+    let attempt = 0;
+    while (!unique && attempt < 5) {
+      const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+      const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const code = `RQ-${datePart}-${rand}`;
+
+      const existing = await this.constructor.findOne({ request_code: code }).lean();
+      if (!existing) {
+        this.request_code = code;
+        unique = true;
+      }
+      attempt += 1;
+    }
+    if (!unique && !this.request_code) {
+      // fallback to Mongo _id-based suffix
+      this.request_code = `RQ-${this._id.toString().slice(-8).toUpperCase()}`;
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // index
 PickupRequestSchema.index({ requester: 1, updated_at: -1 });

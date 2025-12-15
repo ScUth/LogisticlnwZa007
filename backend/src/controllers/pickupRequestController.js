@@ -1,5 +1,7 @@
 import { PickupRequest, PickupRequestItem } from "../models/operations.js";
 
+// ANATOMY OF PICKUP REQUEST AND PICKUP REQUEST ITEM MODELS
+// /*========== PICKUP REQUEST ==========*/
 // const PickupRequestSchema = new mongoose.Schema(
 //   {
 //     requester: { type: ObjectId, ref: "Sender", required: true },
@@ -10,7 +12,7 @@ import { PickupRequest, PickupRequestItem } from "../models/operations.js";
 
 //     status: {
 //       type: String,
-//       enum: ["draft", "pending", "assigned", "in_progress", "complete", "canceled"],
+//       enum: ["draft", "pending", "assigned", "in_progress", "completed", "canceled"],
 //       default: "draft",
 //     },
 
@@ -41,7 +43,7 @@ import { PickupRequest, PickupRequestItem } from "../models/operations.js";
 //       sub_district: { type: String, required: true },
 //     },
 //     estimated_weight: { type: Number, required: true },
-//     quantity: { type: Number, default: 1, required: true, min: 1 },
+//     quantity: { type: Number, required: true, default: 1, min: 1 },
 //     size: {
 //       type: String,
 //       enum: ["small", "medium", "large"], // range, not exact measurements, just for choosing vehicle
@@ -62,6 +64,45 @@ import { PickupRequest, PickupRequestItem } from "../models/operations.js";
 
 
 // ========== For user ========== //
+// GET list of pickup requests (history) for current sender with items
+export const listPickupRequestsForSender = async (req, res) => {
+  try {
+    const requesterId = req.auth.id;
+
+    const pickupRequests = await PickupRequest.find({ requester: requesterId })
+      .sort({ requested_at: -1 });
+
+    if (pickupRequests.length === 0) {
+      return res.status(200).json({ requests: [] });
+    }
+
+    const requestIds = pickupRequests.map((r) => r._id);
+
+    const items = await PickupRequestItem.find({
+      request_id: { $in: requestIds },
+    }).sort({ created_at: 1 });
+
+    const itemsByRequest = {};
+    items.forEach((item) => {
+      const key = item.request_id.toString();
+      if (!itemsByRequest[key]) itemsByRequest[key] = [];
+      itemsByRequest[key].push(item);
+    });
+
+    const result = pickupRequests.map((reqDoc) => ({
+      request: reqDoc,
+      items: itemsByRequest[reqDoc._id.toString()] || [],
+    }));
+
+    return res.status(200).json({ requests: result });
+  } catch (error) {
+    console.error("Error listing pickup requests:", error);
+    return res
+      .status(500)
+      .json({ message: "Error listing pickup requests", error: error.message });
+  }
+};
+
 // POST create pickup request draft or get existing draft
 export const getOrCreateDraftPickupRequest = async (req, res) => {
   try {

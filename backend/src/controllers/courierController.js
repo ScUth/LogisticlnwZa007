@@ -266,6 +266,148 @@ export const getParcelDetails = async (parcelId, courierId) => {
     }
 };
 
+/**
+ * List pickup requests that are pending and not yet assigned to any courier.
+ * Used by couriers to see available work before accepting.
+ */
+export const getAvailablePickupRequests = async () => {
+    try {
+        const pickupRequests = await PickupRequest.find({
+            status: "pending",
+            $or: [
+                { assigned_courier: null },
+                { assigned_courier: { $exists: false } },
+            ],
+        })
+            .populate("requester", "first_name last_name phone")
+            .sort({ requested_at: -1 });
+
+        const requestIds = pickupRequests.map((req) => req._id);
+
+        const items = await PickupRequestItem.find({
+            request_id: { $in: requestIds },
+        }).sort({ created_at: -1 });
+
+        const itemsByRequest = items.reduce((acc, item) => {
+            const key = item.request_id.toString();
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(item);
+            return acc;
+        }, {});
+
+        const requestsWithItems = pickupRequests.map((req) => ({
+            request: req,
+            items: itemsByRequest[req._id.toString()] || [],
+        }));
+
+        return {
+            success: true,
+            data: {
+                requests: requestsWithItems,
+                count: requestsWithItems.length,
+            },
+        };
+    } catch (error) {
+        console.error("Error getting available pickup requests:", error);
+        return {
+            success: false,
+            error: "Failed to fetch available pickup requests",
+            details: error.message,
+        };
+    }
+};
+
+/**
+ * Courier accepts a pickup request and selects a vehicle for pickup.
+ * - Only pending, unassigned requests can be accepted.
+ * - Vehicle must either already belong to the courier or be unassigned.
+ */
+export const acceptPickupRequestForCourier = async (courierId, requestId, vehicleId) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(requestId)) {
+            return {
+                success: false,
+                error: "Invalid request id",
+            };
+        }
+
+        const pickupRequest = await PickupRequest.findById(requestId);
+
+        if (!pickupRequest) {
+            return {
+                success: false,
+                error: "Pickup request not found",
+            };
+        }
+
+        if (pickupRequest.status !== "pending") {
+            return {
+                success: false,
+                error: "Only pending pickup requests can be accepted",
+            };
+        }
+
+        if (pickupRequest.assigned_courier) {
+            return {
+                success: false,
+                error: "Pickup request is already assigned to a courier",
+            };
+        }
+
+        if (!vehicleId || !mongoose.Types.ObjectId.isValid(vehicleId)) {
+            return {
+                success: false,
+                error: "A valid vehicle must be selected to accept this request",
+            };
+        }
+
+        const vehicle = await Vehicle.findById(vehicleId);
+
+        if (!vehicle) {
+            return {
+                success: false,
+                error: "Selected vehicle not found",
+            };
+        }
+
+        // Vehicle must either already be assigned to this courier or be unassigned company vehicle
+        if (
+            vehicle.assigned_courier &&
+            !vehicle.assigned_courier.equals(courierId)
+        ) {
+            return {
+                success: false,
+                error: "Selected vehicle is assigned to another courier",
+            };
+        }
+
+        // If vehicle is unassigned, assign it to this courier
+        if (!vehicle.assigned_courier) {
+            vehicle.assigned_courier = courierId;
+            await vehicle.save();
+        }
+
+        pickupRequest.assigned_courier = courierId;
+        pickupRequest.status = "assigned";
+        await pickupRequest.save();
+
+        return {
+            success: true,
+            data: {
+                request: pickupRequest,
+                vehicle,
+            },
+        };
+    } catch (error) {
+        console.error("Error accepting pickup request:", error);
+        return {
+            success: false,
+            error: "Failed to accept pickup request",
+            details: error.message,
+        };
+    }
+};
+
 // Helper function to check if courier has access to a parcel
 async function checkCourierAccessToParcel(parcelId, courierId) {
     try {

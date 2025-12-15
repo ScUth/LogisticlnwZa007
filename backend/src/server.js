@@ -8,6 +8,7 @@ import locationRoutes from "./routes/locationRoutes.js";
 import pickupRequestRoutes from "./routes/pickupRequestRoutes.js";
 import pickupRequestItemRoutes from "./routes/pickupRequestItemRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import courierRoutes from "./routes/courierRoutes.js";
 import InitializeDatabaseStructures from "./seed/seed.js";
 
 dotenv.config();
@@ -50,6 +51,9 @@ app.use("/api/locations", locationRoutes);
 
 // Admin routes
 app.use("/api/admin", adminRoutes);
+
+// Courier routes
+app.use("/api/courier", courierRoutes);
 
 // connect DB + start
 const PORT = process.env.PORT || 4826;

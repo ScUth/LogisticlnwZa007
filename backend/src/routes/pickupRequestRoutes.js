@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+  listPickupRequestsForSender,
   getOrCreateDraftPickupRequest,
   addItemToPickupRequest,
   submitPickupRequest,
@@ -8,6 +9,9 @@ import {
 import { authSender } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// List all pickup requests for current sender (history)
+router.get('/', authSender, listPickupRequestsForSender);
 
 router.post('/draft', authSender, getOrCreateDraftPickupRequest);
 router.post('/:requestId/submit', authSender, submitPickupRequest);
