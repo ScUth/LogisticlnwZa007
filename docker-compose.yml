@@ -20,7 +20,7 @@ services:
       NODE_ENV: development
       PORT: 4826
       MONGO_URI: mongodb://mongo:27017/dbproject
-      RESET_SEEDED_DATA: "true"
+      RESET_SEED_DATA: "true"
       CHOKIDAR_USEPOLLING: "true"
     ports:
       - "4826:4826"
