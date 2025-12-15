@@ -2,7 +2,7 @@
 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import React from "react"
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826";
 
 export default function HubCreate({ open, onClose, onCreate }) {
     const [hubName, setHubName] = React.useState("")

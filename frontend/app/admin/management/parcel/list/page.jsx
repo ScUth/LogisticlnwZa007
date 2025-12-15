@@ -5,7 +5,7 @@ import Sidebar, { SidebarItem, SubSidebarItem } from "@/components/AdminSidebar"
 import { useRouter } from "next/navigation"
 import React, { useEffect, useState } from 'react'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826";
 
 export default function hubManagement() {
     const router = useRouter()

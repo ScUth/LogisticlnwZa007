@@ -9,7 +9,7 @@ import {
 import { useAdminAuth } from '@/context/adminAuthContext';
 import Sidebar, { SidebarItem, SubSidebarItem } from '@/components/AdminSidebar';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826";
 
 export default function StaffDetail() {
     const router = useRouter();

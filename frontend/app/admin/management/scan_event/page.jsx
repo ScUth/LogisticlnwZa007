@@ -18,7 +18,7 @@ export default function scanEvents() {
             setLoading(true)
             setError(null)
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862"}/api/admin/scan-events`, { credentials: 'include' })
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826"}/api/admin/scan-events`, { credentials: 'include' })
                 if (!res.ok) throw new Error('Failed to fetch scan events')
                 const data = await res.json()
                 const events = (data.events || []).map(e => ({

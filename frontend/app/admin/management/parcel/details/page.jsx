@@ -5,7 +5,7 @@ import Sidebar, { SidebarItem, SubSidebarItem } from "@/components/AdminSidebar"
 import React, { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826";
 
 export default function parcelDetails() {
     const router = useRouter()

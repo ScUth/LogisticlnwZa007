@@ -8,7 +8,7 @@ import Sidebar, { SidebarItem, SubSidebarItem } from '@/components/AdminSidebar'
 import CourierForm from '@/components/CourierForm';
 import { fePointLight, form } from 'framer-motion/client';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826";
 
 export default function CourierList() {
     const router = useRouter();

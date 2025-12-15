@@ -4,8 +4,8 @@ import React, { useEffect, useState } from "react";
 import { NavigationBar } from "@/components/navbar";
 import { useAuth } from "@/context/authContext";
 
-const API_BASE_URL =
-	process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+	const API_BASE_URL =
+	process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826";
 
 export default function ShipmentRequestsPage() {
 	const { user, loading: authLoading } = useAuth();

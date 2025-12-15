@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826";
 
 export function usePickupRequest() {
   const [draft, setDraft] = useState(null);

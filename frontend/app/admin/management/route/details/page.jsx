@@ -16,7 +16,7 @@ export default function routeDetails() {
             setLoading(true)
             setError(null)
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862"}/api/admin/routes`, { credentials: 'include' })
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826"}/api/admin/routes`, { credentials: 'include' })
                 if (!res.ok) throw new Error('Failed to fetch routes')
                 const data = await res.json()
                 const rows = (data.routes || []).map(r => ({

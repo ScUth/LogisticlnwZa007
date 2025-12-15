@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826";
 
 export function useLocation(senderId) {
   const [locations, setLocations] = useState([]);

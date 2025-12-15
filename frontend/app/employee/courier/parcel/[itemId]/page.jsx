@@ -7,7 +7,7 @@ import { Play, MapPin, Package, Truck } from "lucide-react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4826";
 
 async function fetchJson(url, options = {}) {
   const res = await fetch(url, options);

@@ -1,7 +1,7 @@
 // import axios from "axios"
 
 // const API = axios.create({
-//     baseURL: "http://kumtho.trueddns.com:33862",
+//     baseURL: "http://localhost:4826",
 // })
 
 // API.interceptors.request.use(config => {
