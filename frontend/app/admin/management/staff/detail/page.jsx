@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
     Users, Building, Calendar, Package, BarChart, 
-    Phone, User, MapPin, Clock, Activity, AlertCircle 
+    Phone, User, MapPin, Clock, Activity, AlertCircle, LayoutDashboard, Warehouse, BusFront, Truck, Boxes, Fullscreen
 } from "lucide-react";
 import { useAdminAuth } from '@/context/adminAuthContext';
 import Sidebar, { SidebarItem, SubSidebarItem } from '@/components/AdminSidebar';
@@ -206,7 +206,7 @@ export default function StaffDetail() {
                     <SidebarItem icon={<Users />} text="Staff Management" active />
                     <SubSidebarItem text="Staff List" onClick={() => router.push('/admin/management/staff/list')} />
                     <SubSidebarItem text="Staff Detail" active />
-                    <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')} />
+                    <SidebarItem icon={<User />} text="Record" onClick={() => router.push('/admin/management/records')} />
                     <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')} />
                     <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')} />
                     <SidebarItem icon={<Truck />} text="Courier Management" onClick={() => router.push('/admin/management/courier')} />
@@ -234,7 +234,7 @@ export default function StaffDetail() {
                     <SidebarItem icon={<Users />} text="Staff Management" active />
                     <SubSidebarItem text="Staff List" onClick={() => router.push('/admin/management/staff/list')} />
                     <SubSidebarItem text="Staff Detail" active />
-                    <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')} />
+                    <SidebarItem icon={<User />} text="Record" onClick={() => router.push('/admin/management/records')} />
                     <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')} />
                     <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')} />
                     <SidebarItem icon={<Truck />} text="Courier Management" onClick={() => router.push('/admin/management/courier')} />
@@ -269,7 +269,7 @@ export default function StaffDetail() {
                 <SidebarItem icon={<Users />} text="Staff Management" active />
                 <SubSidebarItem text="Staff List" onClick={() => router.push('/admin/management/staff/list')} />
                 <SubSidebarItem text="Staff Detail" active />
-                <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')} />
+                <SidebarItem icon={<User />} text="Record" onClick={() => router.push('/admin/management/records')} />
                 <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')} />
                 <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')} />
                 <SidebarItem icon={<Truck />} text="Courier Management" onClick={() => router.push('/admin/management/courier')} />

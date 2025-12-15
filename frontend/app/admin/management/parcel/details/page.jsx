@@ -1,6 +1,6 @@
 "use client"
 
-import { Boxes, BusFront, CircleSmall, Fullscreen, LayoutDashboard, Package, SquarePen, Truck, User, Warehouse } from "lucide-react"
+import { Boxes, BusFront, CircleSmall, Fullscreen, LayoutDashboard, Package, SquarePen, Truck, User, Warehouse, Users } from "lucide-react"
 import Sidebar, { SidebarItem, SubSidebarItem } from "@/components/AdminSidebar"
 import React, { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -76,6 +76,7 @@ export default function parcelDetails() {
             <Sidebar>
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')}/>
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')}/>
+                <SidebarItem icon={<Users />} text="Staff Management" onClick={() => router.push('/admin/management/staff/list')} />
                 <SidebarItem icon={<User />} text="Record" onClick={() => router.push('/admin/management/records')}/>
                 <SidebarItem icon={<Package />} text="Parcel Management" active/>
                 <SubSidebarItem text="Parcel List" onClick={() => router.push('/admin/management/parcel/list')} />

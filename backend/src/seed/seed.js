@@ -19,7 +19,7 @@ async function InitializeDatabaseStructures() {
             await Employee.deleteMany({ employee_id: { $in: Employees } });
         }
 
-        await Employee.create([
+        const createdEmployees = await Employee.create([
             {
                 first_name: "ธีธัช",
                 last_name: "สุเมธวัฒนะ",
@@ -45,6 +45,8 @@ async function InitializeDatabaseStructures() {
                 role: "courier"
             },
         ]);
+        
+        console.log("Created employees:", createdEmployees.map(e => ({ id: e._id, employee_id: e.employee_id, role: e.role })));
 
         // admin account
         const AdminPass = await bcrypt.hash('admin1234', ROUNDS);
@@ -119,13 +121,15 @@ async function InitializeDatabaseStructures() {
             ])
         }
 
-        const HubExist = await mongoose.connection.db.collection("hubs").findOne({ hub_name: { $in: ["Chomphon Express Center", "Chan Kasem Drop-off", "Lat Yao Distribution Point", "Sena Nikhom Hub"] } });
+
+        const HubExist = await mongoose.connection.db.collection("hubs").findOne({ hub_name: { $in: ["Chomphon Express Center", "Chan Kasem Drop-off", "Lat Yao Distribution Point", "Sena Nikhom Hub", "Chatuchak Hub"] } });
+        let hubs = [];
         if (!HubExist) {
-            await mongoose.connection.db.collection("hubs").insertMany([
+            const result = await mongoose.connection.db.collection("hubs").insertMany([
                 {
                     hub_name: "Chomphon Express Center",
                     address_text: "102/3 Phahonyothin Road Soi 18",
-                    sub_district: "Chomphon", // Chomphon
+                    sub_district: "Chom Phon", // Chomphon
                     active: true
                 },
                 {
@@ -145,15 +149,99 @@ async function InitializeDatabaseStructures() {
                     address_text: "15 Prasert-Manukitch Road",
                     sub_district: "Sena Nikhom", // Sena Nikhom
                     active: true
-                }
-            ])
+                },
+                {
+                    // Chatuchak Hub - active example
+                    hub_name: "Chatuchak Hub",
+                    address_text: "123/45 Kamphaeng Phet 2 Road",
+                    sub_district: "Chatuchak",
+                    active: true
+                },
+            ]);
+            
+            // Get the inserted hub IDs
+            const hubIds = Object.values(result.insertedIds);
+            hubs = await mongoose.connection.db.collection("hubs").find({ _id: { $in: hubIds } }).toArray();
+            console.log("Created hubs:", hubs.map(h => ({ id: h._id, name: h.hub_name })));
+        } else {
+            hubs = await mongoose.connection.db.collection("hubs").find({}).toArray();
+            console.log("Found existing hubs:", hubs.map(h => ({ id: h._id, name: h.hub_name })));
+        }
+        
+        // Create staff employees for each hub
+        const staffPass = await bcrypt.hash('111111', ROUNDS);
+        const existingStaff = await Employee.find({ role: "staff" }).select('employee_id current_hub');
+        
+        if (existingStaff.length === 0 && hubs.length >= 5) {
+            // Generate employee IDs dynamically
+            const lastEmployee = await Employee.findOne().sort({ employee_id: -1 }).select('employee_id');
+            let nextNum = 1;
+            if (lastEmployee) {
+                const lastNum = parseInt(lastEmployee.employee_id.replace('EMP', ''));
+                nextNum = lastNum + 1;
+            }
+            
+            const generateNextEmpId = () => {
+                const id = `EMP${String(nextNum).padStart(4, '0')}`;
+                nextNum++;
+                return id;
+            };
+            
+            await Employee.create([
+                {
+                    first_name: "สมชาย",
+                    last_name: "ใจดี",
+                    phone: "0811111111",
+                    password: staffPass,
+                    employee_id: generateNextEmpId(),
+                    role: "staff",
+                    current_hub: hubs[0]._id // Chomphon Express Center
+                },
+                {
+                    first_name: "สมหญิง",
+                    last_name: "รักงาน",
+                    phone: "0822222222",
+                    password: staffPass,
+                    employee_id: generateNextEmpId(),
+                    role: "staff",
+                    current_hub: hubs[1]._id // Chan Kasem Drop-off
+                },
+                {
+                    first_name: "วิชัย",
+                    last_name: "ขยัน",
+                    phone: "0833333333",
+                    password: staffPass,
+                    employee_id: generateNextEmpId(),
+                    role: "staff",
+                    current_hub: hubs[2]._id // Lat Yao Distribution Point
+                },
+                {
+                    first_name: "สุดา",
+                    last_name: "มีชัย",
+                    phone: "0844444444",
+                    password: staffPass,
+                    employee_id: generateNextEmpId(),
+                    role: "staff",
+                    current_hub: hubs[3]._id // Sena Nikhom Hub
+                },
+                {
+                    first_name: "ประยุทธ",
+                    last_name: "ทำงาน",
+                    phone: "0855555555",
+                    password: staffPass,
+                    employee_id: generateNextEmpId(),
+                    role: "staff",
+                    current_hub: hubs[4]._id // Chatuchak Hub
+                },
+            ]);
+            console.log("Created staff employees for all hubs with employee IDs starting from EMP", String(nextNum - 5).padStart(4, '0'));
         }
 
-            console.log("Seed data inserted successfully");
-        } catch (error) {
-            console.error("Error seeding database:", error.message);
-            throw error;
-        }
+        console.log("Seed data inserted successfully");
+    } catch (error) {
+        console.error("Error seeding database:", error.message);
+        throw error;
     }
+}
 
 export default InitializeDatabaseStructures;

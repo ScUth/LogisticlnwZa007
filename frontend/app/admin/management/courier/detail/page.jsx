@@ -1,7 +1,7 @@
 "use client"
 
 import Sidebar, { SidebarItem, SubSidebarItem } from "@/components/AdminSidebar"
-import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, User, Truck, Warehouse, Calendar, PackageCheck, BarChart } from "lucide-react"
+import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, User, Truck, Warehouse, Calendar, PackageCheck, BarChart, Users } from "lucide-react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import React, { useEffect, useState } from 'react'
 import { useAdminAuth } from '@/context/adminAuthContext'
@@ -173,6 +173,7 @@ export default function CourierDetail() {
                 <Sidebar>
                     <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')} />
                     <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')} />
+                    <SidebarItem icon={<Users />} text="Staff Management" onClick={() => router.push('/admin/management/staff/list')} />
                     <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')} />
                     <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')} />
                     <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')} />
@@ -200,6 +201,7 @@ export default function CourierDetail() {
                 <Sidebar>
                     <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')} />
                     <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')} />
+                    <SidebarItem icon={<Users />} text="Staff Management" onClick={() => router.push('/admin/management/staff/list')} />
                     <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')} />
                     <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')} />
                     <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')} />
@@ -233,6 +235,7 @@ export default function CourierDetail() {
             <Sidebar>
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')} />
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')} />
+                <SidebarItem icon={<Users />} text="Staff Management" onClick={() => router.push('/admin/management/staff/list')} />
                 <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')} />
                 <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')} />
                 <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')} />

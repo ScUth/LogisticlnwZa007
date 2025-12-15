@@ -6,6 +6,7 @@ import {
     getAvailablePickupRequests,
     acceptPickupRequestForCourier,
     confirmPickupItemParcels,
+    markParcelArrivedAtHub,
 } from "../controllers/courierController.js";
 import { PickupRequest, Vehicle } from "../models/operations.js";
 import { authenticate, authorizeCourier } from "../middleware/auth.js";
@@ -248,6 +249,33 @@ router.post("/pickup-items/:itemId/confirm-parcels", async (req, res) => {
         res.json(result);
     } catch (error) {
         console.error("Error in /api/courier/pickup-items/:itemId/confirm-parcels:", error);
+        res.status(500).json({
+            success: false,
+            error: "Server error",
+            details: error.message,
+        });
+    }
+});
+
+/**
+ * @route   POST /api/courier/parcels/:parcelId/arrived-at-hub
+ * @desc    Courier marks a parcel as arrived at the origin hub
+ * @access  Private (Courier only)
+ */
+router.post("/parcels/:parcelId/arrived-at-hub", async (req, res) => {
+    try {
+        const courierId = req.user.id;
+        const { parcelId } = req.params;
+
+        const result = await markParcelArrivedAtHub(courierId, parcelId);
+
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error("Error in /api/courier/parcels/:parcelId/arrived-at-hub:", error);
         res.status(500).json({
             success: false,
             error: "Server error",

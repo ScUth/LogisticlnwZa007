@@ -40,6 +40,8 @@ export default function PickupPage() {
     const [vehicles, setVehicles] = useState([]);
     const [acceptingId, setAcceptingId] = useState(null);
     const [vehicle, setVehicle] = useState(null);
+    const [pickedUpParcels, setPickedUpParcels] = useState([]);
+    const [markingHubArrival, setMarkingHubArrival] = useState(null);
 
     useEffect(() => {
         const fetchAllData = async () => {
@@ -65,6 +67,11 @@ export default function PickupPage() {
 
                 setPickupItems(parcelsData.data?.groupedParcels?.forPickup || []);
                 setVehicle(parcelsData.data?.vehicle || null);
+                
+                // Get parcels that have been picked up (status = "picked_up")
+                const inTransitParcels = parcelsData.data?.groupedParcels?.inTransit || [];
+                const pickedUpOnly = inTransitParcels.filter(p => p.status === "picked_up");
+                setPickedUpParcels(pickedUpOnly);
 
                 // 2) Vehicles available to this courier
                 const { res: vehiclesRes, data: vehiclesData } = await fetchJson(
@@ -145,6 +152,9 @@ export default function PickupPage() {
             if (refreshRes.ok && refreshData.success) {
                 setPickupItems(refreshData.data?.groupedParcels?.forPickup || []);
                 setVehicle(refreshData.data?.vehicle || null);
+                const inTransitParcels = refreshData.data?.groupedParcels?.inTransit || [];
+                const pickedUpOnly = inTransitParcels.filter(p => p.status === "picked_up");
+                setPickedUpParcels(pickedUpOnly);
             }
 
             const { res: availableRes, data: availableData } = await fetchJson(
@@ -161,6 +171,46 @@ export default function PickupPage() {
             setError(err.message || "Error accepting pickup request");
         } finally {
             setAcceptingId(null);
+        }
+    };
+
+    const handleMarkArrivedAtHub = async (parcelId) => {
+        setMarkingHubArrival(parcelId);
+        setError(null);
+        try {
+            if (typeof window !== "undefined") {
+                console.debug("[PickupPage] marking parcel arrived at hub", parcelId);
+            }
+            const { res, data } = await fetchJson(
+                `${API_BASE_URL}/api/courier/parcels/${parcelId}/arrived-at-hub`,
+                {
+                    method: "POST",
+                    credentials: "include",
+                }
+            );
+
+            if (!res.ok || data.success === false) {
+                throw new Error(data.error || data.message || "Failed to mark parcel as arrived");
+            }
+
+            // Refresh data
+            const { res: refreshRes, data: refreshData } = await fetchJson(
+                `${API_BASE_URL}/api/courier/parcels`,
+                { credentials: "include" }
+            );
+            if (refreshRes.ok && refreshData.success) {
+                setPickupItems(refreshData.data?.groupedParcels?.forPickup || []);
+                const inTransitParcels = refreshData.data?.groupedParcels?.inTransit || [];
+                const pickedUpOnly = inTransitParcels.filter(p => p.status === "picked_up");
+                setPickedUpParcels(pickedUpOnly);
+            }
+        } catch (err) {
+            if (typeof window !== "undefined") {
+                console.error("[PickupPage] mark arrived at hub error", err);
+            }
+            setError(err.message || "Error marking parcel as arrived at hub");
+        } finally {
+            setMarkingHubArrival(null);
         }
     };
 
@@ -254,20 +304,19 @@ export default function PickupPage() {
                                                 <div className="font-semibold text-gray-800">
                                                     {request.request_code || request._id}
                                                 </div>
-                                                {firstItem?.recipient && (
+                                                {request?.pickup_location && (
                                                     <div className="mt-1 text-sm text-gray-700">
-                                                        {firstItem.recipient.first_name} {" "}
-                                                        {firstItem.recipient.last_name}
+                                                        Pickup location
                                                     </div>
                                                 )}
-                                                {firstItem?.recipient?.address_text && (
+                                                {request?.pickup_location?.address_text && (
                                                     <div className="text-xs text-gray-600 truncate max-w-[320px]">
-                                                        {firstItem.recipient.address_text}
+                                                        {request.pickup_location.address_text}
                                                     </div>
                                                 )}
-                                                {firstItem?.recipient?.sub_district && (
+                                                {request?.pickup_location?.sub_district && (
                                                     <div className="text-xs text-gray-500">
-                                                        {firstItem.recipient.sub_district}
+                                                        {request.pickup_location.sub_district}
                                                     </div>
                                                 )}
                                             </div>
@@ -449,6 +498,67 @@ export default function PickupPage() {
                         </div>
                     )}
                 </section>
+
+                {/* Picked up parcels ready to be delivered to hub */}
+                {pickedUpParcels.length > 0 && (
+                    <section className="bg-white rounded-lg shadow p-4 mt-6">
+                        <h2 className="text-lg font-semibold mb-2">Parcels to Deliver to Hub</h2>
+                        <p className="text-sm text-gray-600 mb-3">
+                            These parcels have been picked up. Mark them as arrived when you reach the origin hub.
+                        </p>
+                        <div className="space-y-3">
+                            {pickedUpParcels.map((parcel) => (
+                                <div
+                                    key={parcel._id}
+                                    className="border rounded-md p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                                >
+                                    <div className="flex-1">
+                                        <div className="font-mono text-sm text-emerald-700 font-semibold">
+                                            {parcel.tracking_code}
+                                        </div>
+                                        {parcel.recipient && (
+                                            <div className="font-medium text-gray-800 mt-1">
+                                                To: {parcel.recipient.first_name} {parcel.recipient.last_name}
+                                            </div>
+                                        )}
+                                        {parcel.recipient?.address_text && (
+                                            <div className="text-sm text-gray-600 truncate max-w-[320px]">
+                                                {parcel.recipient.address_text}
+                                            </div>
+                                        )}
+                                        {parcel.recipient?.sub_district && (
+                                            <div className="text-xs text-gray-500">
+                                                {parcel.recipient.sub_district}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
+                                        {parcel.weight_grams && (
+                                            <div className="px-2 py-1 rounded-full bg-gray-100">
+                                                Weight: <span className="font-semibold">{parcel.weight_grams}g</span>
+                                            </div>
+                                        )}
+                                        <div className="px-2 py-1 rounded-full bg-blue-50 text-blue-700">
+                                            Status: <span className="font-semibold">{parcel.status}</span>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            disabled={markingHubArrival === parcel._id}
+                                            onClick={() => handleMarkArrivedAtHub(parcel._id)}
+                                            className="ml-auto inline-flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                                        >
+                                            {markingHubArrival === parcel._id
+                                                ? "Marking..."
+                                                : "Mark Arrived at Hub"}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
             </main>
         </div>
     );

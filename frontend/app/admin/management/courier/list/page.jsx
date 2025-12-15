@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, User, Truck, Warehouse, X } from "lucide-react"
+import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, User, Truck, Warehouse, X, Users } from "lucide-react"
 import { useAdminAuth } from '@/context/adminAuthContext';
 import Sidebar, { SidebarItem, SubSidebarItem } from '@/components/AdminSidebar';
 import CourierForm from '@/components/CourierForm';
@@ -283,6 +283,7 @@ export default function CourierList() {
             <Sidebar>
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')} />
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')} />
+                <SidebarItem icon={<Users />} text="Staff Management" onClick={() => router.push('/admin/management/staff/list')} />
                 <SidebarItem icon={<User />} text="Sender & Recipient Record" onClick={() => router.push('/admin/management/sender_n_recipient_records')} />
                 <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')} />
                 <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')} />

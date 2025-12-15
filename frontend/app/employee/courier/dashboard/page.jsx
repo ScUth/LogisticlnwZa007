@@ -110,8 +110,28 @@ export default function Courier() {
         fetchAcceptedRequests()
     }, [employee])
 
-    const startRoute = () => {
-        setRouteStarted(true)
+    const startRoute = async () => {
+        if (!todaysRoute) {
+            alert("No route to start")
+            return
+        }
+        if (!confirm("Start this route? This will mark all parcels as out for delivery.")) return
+        
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/api/employee/routes/${todaysRoute._id}/start`,
+                { method: "POST", credentials: "include" }
+            )
+            const data = await res.json()
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || "Failed to start route")
+            }
+            await fetchDashboard()
+            alert(`Route started! ${data.data?.updatedParcels || 0} parcels now out for delivery.`)
+        } catch (err) {
+            console.error(err)
+            alert(err.message || "Failed to start route")
+        }
     }
 
     const completeRoute = () => {

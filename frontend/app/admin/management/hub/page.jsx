@@ -12,6 +12,7 @@ import {
     Truck,
     User,
     Warehouse,
+    Users
 } from "lucide-react"
 
 import Sidebar, { SidebarItem } from "@/components/AdminSidebar"
@@ -122,6 +123,7 @@ export default function HubManagement() {
                     onClick={() => router.push("/admin/dashboard")}
                 />
                 <SidebarItem icon={<Warehouse />} text="Hub Management" active />
+                <SidebarItem icon={<Users />} text="Staff Management" onClick={() => router.push('/admin/management/staff/list')} />
                 <SidebarItem
                     icon={<User />}
                     text="Record"

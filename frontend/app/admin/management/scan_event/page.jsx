@@ -1,6 +1,6 @@
 "use client"
 
-import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, SquarePlus, Truck, User, Warehouse } from "lucide-react"
+import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, SquarePlus, Truck, User, Warehouse, Users } from "lucide-react"
 import EventCreate from "@/components/ScanEventsCreate"
 import React from "react"
 import Sidebar, { SidebarItem } from "@/components/AdminSidebar"
@@ -9,19 +9,37 @@ import { useRouter } from "next/navigation"
 export default function scanEvents() {
     const router = useRouter()
     const [openCreate, setOpenCreate] = React.useState(false)
-    const [scanEvents, setScanEvents] = React.useState([
-        { scan_id: 'SE001', tracking_code: 'P001', hub_id: null, courier_id: 'C001',  event_time: '2025-12-10 09:00:00', event_type: 'picked_up', note: null },
-        { scan_id: 'SE002', tracking_code: 'P001', hub_id: 'H001', courier_id: null,  event_time: '2025-12-10 12:00:00', event_type: 'arrived_hub', note: null },
-        { scan_id: 'SE003', tracking_code: 'P001', hub_id: 'H001', courier_id: null,  event_time: '2025-12-10 14:00:00', event_type: 'departed_hub', note: null },
-        { scan_id: 'SE004', tracking_code: 'P001', hub_id: null, courier_id: 'C002',  event_time: '2025-12-11 08:00:00', event_type: 'out_for_delivery', note: null },
-        { scan_id: 'SE005', tracking_code: 'P001', hub_id: null, courier_id: 'C002',  event_time: '2025-12-11 10:30:00', event_type: 'delivered', note: null },
-        { scan_id: 'SE006', tracking_code: 'P002', hub_id: null, courier_id: 'C003',  event_time: '2025-12-11 09:00:00', event_type: 'picked_up', note: null },
-        { scan_id: 'SE007', tracking_code: 'P002', hub_id: 'H002', courier_id: null,  event_time: '2025-12-11 13:00:00', event_type: 'arrived_hub', note: null },
-        { scan_id: 'SE008', tracking_code: 'P002', hub_id: 'H002', courier_id: null,  event_time: '2025-12-11 15:00:00', event_type: 'departed_hub', note: null },
-        { scan_id: 'SE009', tracking_code: 'P002', hub_id: null, courier_id: 'C004',  event_time: '2025-12-12 08:00:00', event_type: 'out_for_delivery', note: null },
-        { scan_id: 'SE010', tracking_code: 'P002', hub_id: null, courier_id: 'C004',  event_time: '2025-12-12 11:00:00', event_type: 'failed_delivery', note: null },
-        { scan_id: 'SE011', tracking_code: 'P002', hub_id: null, courier_id: 'C004',  event_time: '2025-12-12 14:00:00', event_type: 'returned_to_sender', note: null },
-    ])
+    const [scanEvents, setScanEvents] = React.useState([])
+    const [loading, setLoading] = React.useState(true)
+    const [error, setError] = React.useState(null)
+
+    React.useEffect(() => {
+        const load = async () => {
+            setLoading(true)
+            setError(null)
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862"}/api/admin/scan-events`, { credentials: 'include' })
+                if (!res.ok) throw new Error('Failed to fetch scan events')
+                const data = await res.json()
+                const events = (data.events || []).map(e => ({
+                    ...e,
+                    tracking_code: e.parcel?.tracking_code || '-',
+                    hub_display: e.hub?.hub_name || e.hub?.name || '-',
+                    courier_display: e.courier ? (e.courier.employee_id || `${e.courier.first_name || ''} ${e.courier.last_name || ''}`).trim() : '-',
+                    event_time: e.event_time,
+                    event_type: e.event_type,
+                    note: e.notes || e.note || null
+                }))
+                setScanEvents(events)
+            } catch (err) {
+                console.error(err)
+                setError(err.message)
+            } finally {
+                setLoading(false)
+            }
+        }
+        load()
+    }, [])
 
     const addEvent = (newEvent) => {
         setScanEvents((prev) => [...prev, newEvent])
@@ -32,9 +50,10 @@ export default function scanEvents() {
             <Sidebar>
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')}/>
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')}/>
+                <SidebarItem icon={<Users />} text="Staff Management" onClick={() => router.push('/admin/management/staff/list')} />
                 <SidebarItem icon={<User />} text="Record" onClick={() => router.push('/admin/management/records')}/>
                 <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')}/>
-                <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('admin/management/route')}/>
+                <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')}/>
                 <SidebarItem icon={<Truck />} text="Courier Management" onClick={() => router.push('/admin/management/courier')}/>
                 <SidebarItem icon={<Boxes />} text="Scan Event Management" active/>
                 <SidebarItem icon={<Fullscreen />} text="Proof of Delivery Management" onClick={() => router.push('/admin/management/pod')}/>
@@ -73,16 +92,20 @@ export default function scanEvents() {
                                 </thead>
 
                                 <tbody>
-                                    {[...scanEvents].sort((a, b) => new Date(b.event_time) - new Date(a.event_time)).map(se => (
-                                        <tr className="">
+                                    {loading ? (
+                                        <tr><td colSpan={6} className="py-6 text-center text-gray-500">Loading…</td></tr>
+                                    ) : error ? (
+                                        <tr><td colSpan={6} className="py-6 text-center text-red-500">{error}</td></tr>
+                                    ) : ([...scanEvents].sort((a, b) => new Date(b.event_time) - new Date(a.event_time)).map(se => (
+                                        <tr key={se._id} className="">
                                             <td className="px-2 py-1">{se.tracking_code}</td>
-                                            <td className="px-2 py-1">{se.hub_id ?? "-"}</td>
-                                            <td className="px-2 py-1">{se.courier_id ?? "-"}</td>
+                                            <td className="px-2 py-1">{se.hub_display ?? "-"}</td>
+                                            <td className="px-2 py-1">{se.courier_display ?? "-"}</td>
                                             <td className="px-2 py-1">{se.event_time}</td>
                                             <td className="px-2 py-1">{se.event_type}</td>
                                             <td className="px-2 py-1">{se.note ?? "-"}</td>
                                         </tr>
-                                    ))}
+                                    )))}
                                 </tbody>
                             </table>
                         </div>

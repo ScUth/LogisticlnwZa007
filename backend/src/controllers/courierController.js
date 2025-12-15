@@ -29,7 +29,7 @@ export const getCourierParcels = async (courierId) => {
         const pickupRequestIds = pickupRequests.map((req) => req._id);
         const pickupRequestItems = await PickupRequestItem.find({
             request_id: { $in: pickupRequestIds },
-            status: { $in: ["confirmed", "parcel_created"] },
+            status: { $in: ["confirmed", "parcel_created"] }, // confirmed = need to create, parcel_created = track delivery
         }).populate("parcel_id");
 
         // 2. Get active routes for this courier
@@ -74,18 +74,20 @@ export const getCourierParcels = async (courierId) => {
 
         // Process pickup request items
         pickupRequestItems.forEach((item) => {
-            if (item.parcel_id) {
-                // Already has a parcel created
-                groupedParcels.forPickup.push({
-                    ...item.parcel_id.toObject(),
+            // Check if parcels have been created (status=parcel_created and parcel_id exists)
+            if (item.status === "parcel_created" && item.parcel_id) {
+                // Parcel has been created - add to inTransit for tracking to hub
+                const parcelObj = item.parcel_id.toObject();
+                groupedParcels.inTransit.push({
+                    ...parcelObj,
                     pickup_request_item: item._id,
                     pickup_request: item.request_id,
                     task_type: "pickup",
                     estimated_weight: item.estimated_weight,
                     size: item.size,
                 });
-            } else {
-                // No parcel created yet - just the request item
+            } else if (item.status === "confirmed") {
+                // No parcel created yet - show in forPickup to create parcels
                 groupedParcels.forPickup.push({
                     _id: item._id,
                     recipient: item.recipient,
@@ -242,6 +244,73 @@ export const getOpenRoutes = async () => {
 };
 
 /**
+ * Start a route - update route status and parcel statuses
+ * @param {ObjectId} routeId - Route ID
+ * @param {ObjectId} courierId - Courier ID
+ * @returns {Object} - Result object
+ */
+export const startRoute = async (routeId, courierId) => {
+    try {
+        const route = await Route.findById(routeId);
+        if (!route) return { success: false, error: 'Route not found' };
+        
+        // Verify courier owns this route
+        if (!route.courier_id || route.courier_id.toString() !== courierId.toString()) {
+            return { success: false, error: 'You are not assigned to this route' };
+        }
+
+        if (route.status !== 'planned') {
+            return { success: false, error: `Route cannot be started. Current status: ${route.status}` };
+        }
+
+        // Update route status
+        route.status = 'out_for_delivery';
+        route.started_at = new Date();
+        await route.save();
+
+        // Get all parcels assigned to this route
+        const assignments = await ParcelRouteAssignment.find({
+            route_id: routeId,
+            active: true,
+        });
+
+        const parcelIds = assignments.map(a => a.parcel_id);
+        
+        // Update all parcels to out_for_delivery status
+        await Parcel.updateMany(
+            { 
+                _id: { $in: parcelIds },
+                status: 'at_dest_hub' // Only update parcels that are ready at destination hub
+            },
+            { status: 'out_for_delivery' }
+        );
+
+        // Create scan events for each parcel
+        const scanEvents = parcelIds.map(parcelId => ({
+            parcel_id: parcelId,
+            courier_id: courierId,
+            event_type: 'out_for_delivery',
+            event_time: new Date(),
+            notes: `Courier started delivery route`
+        }));
+
+        await ParcelScanEvent.insertMany(scanEvents);
+
+        return {
+            success: true,
+            data: {
+                route,
+                updatedParcels: parcelIds.length,
+                message: 'Route started successfully'
+            }
+        };
+    } catch (error) {
+        console.error('Error starting route:', error);
+        return { success: false, error: 'Failed to start route', details: error.message };
+    }
+};
+
+/**
  * Courier accepts a route (set courier_id if not set)
  */
 export const acceptRoute = async (routeId, courierId) => {
@@ -273,6 +342,195 @@ export const getAssignedPickups = async (courierId) => {
     } catch (error) {
         console.error('Error getting assigned pickups:', error);
         return { success: false, error: 'Failed to fetch pickups', details: error.message };
+    }
+};
+
+// GET parcels for a hub (origin or destination match)
+export const getParcelsForHub = async (hubId) => {
+    try {
+        if (!hubId) return { success: false, error: 'hubId required' };
+        const parcels = await Parcel.find({
+            $or: [ { origin_hub_id: hubId }, { dest_hub_id: hubId } ]
+        })
+        .select('tracking_code status origin_hub_id dest_hub_id created_at updated_at')
+        .populate('origin_hub_id', 'hub_name')
+        .populate('dest_hub_id', 'hub_name')
+        .sort({ updated_at: -1 })
+        .lean();
+
+        const mapped = parcels.map(p => ({
+            ...p,
+            origin_hub: p.origin_hub_id ? { _id: p.origin_hub_id._id, name: p.origin_hub_id.hub_name } : null,
+            dest_hub: p.dest_hub_id ? { _id: p.dest_hub_id._id, name: p.dest_hub_id.hub_name } : null,
+        }));
+
+        return { success: true, data: { parcels: mapped } };
+    } catch (err) {
+        console.error('Error fetching parcels for hub:', err);
+        return { success: false, error: 'Failed to fetch parcels', details: err.message };
+    }
+};
+
+// Create a ParcelScanEvent for a hub (staff action)
+export const createHubScanEvent = async (hubId, { parcel_id, courier_id, event_type, notes } = {}) => {
+    try {
+        if (!hubId || !parcel_id || !event_type) return { success: false, error: 'hubId, parcel_id and event_type are required' };
+
+        // validate parcel belongs to this hub
+        const parcel = await Parcel.findById(parcel_id);
+        if (!parcel) return { success: false, error: 'Parcel not found' };
+
+        const matchesHub = String(parcel.origin_hub_id) === String(hubId) || String(parcel.dest_hub_id) === String(hubId);
+        if (!matchesHub) return { success: false, error: 'Parcel does not belong to this hub' };
+
+        const event = await ParcelScanEvent.create({
+            parcel_id: parcel._id,
+            hub_id: hubId,
+            courier_id: courier_id || null,
+            event_type,
+            event_time: new Date(),
+            notes: notes || ''
+        });
+
+        return { success: true, data: { event } };
+    } catch (err) {
+        console.error('Error creating hub scan event:', err);
+        return { success: false, error: 'Failed to create scan event', details: err.message };
+    }
+};
+
+/**
+ * Process parcel at hub - determines next action based on hub location and parcel status
+ * @param {ObjectId} hubId - Current hub ID
+ * @param {ObjectId} parcelId - Parcel ID
+ * @param {String} action - Action to perform: 'send_to_linehaul', 'prepare_for_delivery', 'confirm_arrival'
+ * @param {Object} options - Additional options (courier_id, notes)
+ */
+export const processParcelAtHub = async (hubId, parcelId, action, options = {}) => {
+    try {
+        const parcel = await Parcel.findById(parcelId).populate('origin_hub_id dest_hub_id');
+        if (!parcel) return { success: false, error: 'Parcel not found' };
+
+        const isOriginHub = String(parcel.origin_hub_id._id) === String(hubId);
+        const isDestHub = String(parcel.dest_hub_id._id) === String(hubId);
+        
+        if (!isOriginHub && !isDestHub) {
+            return { success: false, error: 'This hub is neither origin nor destination for this parcel' };
+        }
+
+        let newStatus, eventType, eventNotes;
+
+        switch (action) {
+            case 'send_to_linehaul':
+                // Staff at origin hub sending parcel to linehaul (towards dest hub)
+                if (!isOriginHub) {
+                    return { success: false, error: 'Can only send to linehaul from origin hub' };
+                }
+                if (parcel.status !== 'at_origin_hub') {
+                    return { success: false, error: `Cannot send to linehaul. Current status: ${parcel.status}` };
+                }
+                newStatus = 'in_linehaul';
+                eventType = 'departed_hub';
+                eventNotes = options.notes || `Departed from ${parcel.origin_hub_id.hub_name} to ${parcel.dest_hub_id.hub_name}`;
+                break;
+
+            case 'prepare_for_delivery':
+                // Staff at destination hub preparing parcel for local delivery
+                if (!isDestHub) {
+                    return { success: false, error: 'Can only prepare for delivery at destination hub' };
+                }
+                if (parcel.status !== 'at_dest_hub' && parcel.status !== 'at_origin_hub') {
+                    return { success: false, error: `Cannot prepare for delivery. Current status: ${parcel.status}` };
+                }
+                
+                // Create or find today's route for this hub
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                let route = await Route.findOne({
+                    hub_id: hubId,
+                    route_date: today,
+                    status: { $in: ['planned', 'out_for_delivery'] }
+                });
+                
+                if (!route) {
+                    // Create a new route for today
+                    route = await Route.create({
+                        hub_id: hubId,
+                        route_date: today,
+                        status: 'planned'
+                    });
+                }
+                
+                // Check if parcel already assigned to this route
+                const existingAssignment = await ParcelRouteAssignment.findOne({
+                    parcel_id: parcelId,
+                    route_id: route._id,
+                    active: true
+                });
+                
+                if (!existingAssignment) {
+                    // Deactivate any other active assignments
+                    await ParcelRouteAssignment.updateMany(
+                        { parcel_id: parcelId, active: true },
+                        { active: false }
+                    );
+                    
+                    // Create new assignment
+                    await ParcelRouteAssignment.create({
+                        parcel_id: parcelId,
+                        route_id: route._id,
+                        active: true
+                    });
+                }
+                
+                newStatus = 'at_dest_hub'; // Keep at dest hub until courier picks up
+                eventType = 'arrived_hub';
+                eventNotes = options.notes || `Prepared for delivery at ${parcel.dest_hub_id.hub_name}`;
+                break;
+
+            case 'confirm_arrival':
+                // Staff confirming parcel arrived at their hub from linehaul
+                if (parcel.status !== 'in_linehaul') {
+                    return { success: false, error: `Cannot confirm arrival. Current status: ${parcel.status}` };
+                }
+                if (!isDestHub) {
+                    return { success: false, error: 'Parcel should arrive at destination hub' };
+                }
+                newStatus = 'at_dest_hub';
+                eventType = 'arrived_hub';
+                eventNotes = options.notes || `Arrived at ${parcel.dest_hub_id.hub_name}`;
+                break;
+
+            default:
+                return { success: false, error: 'Invalid action' };
+        }
+
+        // Update parcel status
+        parcel.status = newStatus;
+        await parcel.save();
+
+        // Create scan event
+        const scanEvent = await ParcelScanEvent.create({
+            parcel_id: parcelId,
+            hub_id: hubId,
+            courier_id: options.courier_id || null,
+            event_type: eventType,
+            event_time: new Date(),
+            notes: eventNotes
+        });
+
+        return {
+            success: true,
+            data: {
+                parcel,
+                scanEvent,
+                message: `Parcel ${action.replace(/_/g, ' ')} successfully`
+            }
+        };
+    } catch (err) {
+        console.error('Error processing parcel at hub:', err);
+        return { success: false, error: 'Failed to process parcel', details: err.message };
     }
 };
 
@@ -564,15 +822,33 @@ export const confirmPickupItemParcels = async (courierId, itemId, parcelsPayload
             return { success: false, error: "You are not assigned to this pickup request" };
         }
 
+        // If this item was already converted to parcels, make the
+        // operation idempotent and return existing parcels instead of
+        // attempting to create duplicates (which would violate the
+        // unique tracking_code index).
+        if (item.status === "parcel_created" && Array.isArray(item.parcel_ids) && item.parcel_ids.length > 0) {
+            const existingParcels = await Parcel.find({ _id: { $in: item.parcel_ids } });
+            return {
+                success: true,
+                data: {
+                    item,
+                    parcels: existingParcels,
+                    alreadyConfirmed: true,
+                },
+            };
+        }
+
         if (!Array.isArray(parcelsPayload) || parcelsPayload.length === 0) {
             return { success: false, error: "Parcels payload is required" };
         }
 
-        // Enforce 1 parcel per requested quantity unit
-        if (parcelsPayload.length !== item.quantity) {
+        // Allow courier to confirm fewer parcels than originally requested
+        // (e.g. customer cancels some units). We only require that the
+        // number of confirmed parcels does not exceed the original quantity.
+        if (parcelsPayload.length > item.quantity) {
             return {
                 success: false,
-                error: `Expected ${item.quantity} parcels but received ${parcelsPayload.length}`,
+                error: `Cannot create more than ${item.quantity} parcels for this item`,
             };
         }
 
@@ -582,15 +858,16 @@ export const confirmPickupItemParcels = async (courierId, itemId, parcelsPayload
             return { success: false, error: "Sender for this pickup request not found" };
         }
 
-        // Choose default hubs if none are provided in payload.
-        // For now, use the first active hub as both origin and destination
-        // when origin_hub_id / dest_hub_id are omitted. This keeps the
-        // frontend simpler while still satisfying Parcel schema requirements.
-        const defaultHub = await Hub.findOne({ active: true }).lean();
-        if (!defaultHub) {
+        // Find origin hub by matching pickup location sub_district
+        const pickupSubDistrict = request.pickup_location?.sub_district;
+        const originHub = pickupSubDistrict
+            ? await Hub.findOne({ sub_district: pickupSubDistrict, active: true }).lean()
+            : null;
+
+        if (!originHub) {
             return {
                 success: false,
-                error: "No active hubs configured in the system",
+                error: `No active hub found for pickup sub-district: ${pickupSubDistrict || "N/A"}`,
             };
         }
 
@@ -613,16 +890,62 @@ export const confirmPickupItemParcels = async (courierId, itemId, parcelsPayload
                 return { success: false, error: "Parcel size must be small, medium, or large" };
             }
 
-            // Basic tracking code generation: use request_code + item index + parcel index
+            // Basic tracking code generation: use request_code + item suffix + parcel index
+            // and add a short random segment to avoid collisions on retries.
             const baseCode = request.request_code || request._id.toString().slice(-8).toUpperCase();
-            const tracking_code = `${baseCode}-${item._id.toString().slice(-4).toUpperCase()}-${i + 1}`;
+            const itemSuffix = item._id.toString().slice(-4).toUpperCase();
+
+            let tracking_code;
+            let attempts = 0;
+            // Try a few times to generate a unique tracking code; the
+            // unique index on tracking_code acts as a safety net.
+            while (attempts < 5) {
+                const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+                tracking_code = `${baseCode}-${itemSuffix}-${i + 1}-${rand}`;
+                const exists = await Parcel.exists({ tracking_code });
+                if (!exists) break;
+                attempts += 1;
+            }
+
+            if (!tracking_code) {
+                return {
+                    success: false,
+                    error: "Failed to generate unique tracking code for parcel",
+                };
+            }
+
+            // allow courier to override recipient details per parcel; fall back to item.recipient
+            const recipientOverride = p.recipient || {};
+            const hasCompleteRecipientOverride =
+                recipientOverride.first_name &&
+                recipientOverride.last_name &&
+                recipientOverride.phone &&
+                recipientOverride.address_text &&
+                recipientOverride.sub_district;
+
+            const recipient = hasCompleteRecipientOverride
+                ? recipientOverride
+                : item.recipient;
+
+            // Find destination hub by matching recipient's sub_district
+            const recipientSubDistrict = recipient.sub_district;
+            const destHub = recipientSubDistrict
+                ? await Hub.findOne({ sub_district: recipientSubDistrict, active: true }).lean()
+                : null;
+
+            if (!destHub) {
+                return {
+                    success: false,
+                    error: `No active hub found for recipient sub-district: ${recipientSubDistrict || "N/A"}`,
+                };
+            }
 
             const originHubId = p.origin_hub_id && mongoose.Types.ObjectId.isValid(p.origin_hub_id)
                 ? p.origin_hub_id
-                : defaultHub._id;
+                : originHub._id;
             const destHubId = p.dest_hub_id && mongoose.Types.ObjectId.isValid(p.dest_hub_id)
                 ? p.dest_hub_id
-                : defaultHub._id;
+                : destHub._id;
 
             const parcel = await Parcel.create({
                 tracking_code,
@@ -636,11 +959,11 @@ export const confirmPickupItemParcels = async (courierId, itemId, parcelsPayload
                     sub_district: request.pickup_location.sub_district,
                 },
                 recipient: {
-                    first_name: item.recipient.first_name,
-                    last_name: item.recipient.last_name,
-                    phone: item.recipient.phone,
-                    address_text: item.recipient.address_text,
-                    sub_district: item.recipient.sub_district,
+                    first_name: recipient.first_name,
+                    last_name: recipient.last_name,
+                    phone: recipient.phone,
+                    address_text: recipient.address_text,
+                    sub_district: recipient.sub_district,
                 },
                 origin_hub_id: originHubId,
                 dest_hub_id: destHubId,
@@ -652,6 +975,13 @@ export const confirmPickupItemParcels = async (courierId, itemId, parcelsPayload
         }
 
         item.status = "parcel_created";
+        // If fewer parcels were confirmed than originally requested,
+        // shrink the quantity to match and treat the unconfirmed units
+        // as effectively cancelled.
+        if (parcelsPayload.length < item.quantity) {
+            item.quantity = parcelsPayload.length;
+        }
+
         // keep single parcel_id for backward compatibility with existing queries
         item.parcel_id = createdParcels[0]?._id || null;
         item.parcel_ids = createdParcels.map((pc) => pc._id);
@@ -727,3 +1057,67 @@ function getAvailableActions(status) {
 
     return actions[status] || [];
 }
+
+/**
+ * Mark a parcel as arrived at the origin hub
+ * @param {ObjectId} courierId - Courier ID
+ * @param {ObjectId} parcelId - Parcel ID
+ * @returns {Object} - Result object
+ */
+export const markParcelArrivedAtHub = async (courierId, parcelId) => {
+    try {
+        // Verify the parcel exists
+        const parcel = await Parcel.findById(parcelId).populate("origin_hub_id");
+        if (!parcel) {
+            return { success: false, error: "Parcel not found" };
+        }
+
+        // Check if courier has access to this parcel
+        const hasAccess = await checkCourierAccessToParcel(parcelId, courierId);
+        if (!hasAccess) {
+            return {
+                success: false,
+                error: "Unauthorized: You don't have access to this parcel",
+            };
+        }
+
+        // Check if parcel is in the correct status (should be picked_up)
+        if (parcel.status !== "picked_up") {
+            return {
+                success: false,
+                error: `Cannot mark as arrived at hub. Current status: ${parcel.status}`,
+            };
+        }
+
+        // Update parcel status to at_origin_hub
+        parcel.status = "at_origin_hub";
+        await parcel.save();
+
+        // Create a scan event
+        const scanEvent = new ParcelScanEvent({
+            parcel_id: parcelId,
+            hub_id: parcel.origin_hub_id._id,
+            courier_id: courierId,
+            event_type: "arrived_hub",
+            event_time: new Date(),
+            notes: `Parcel arrived at origin hub: ${parcel.origin_hub_id.hub_name || parcel.origin_hub_id._id}`,
+        });
+        await scanEvent.save();
+
+        return {
+            success: true,
+            data: {
+                parcel,
+                scanEvent,
+                message: `Parcel marked as arrived at ${parcel.origin_hub_id.hub_name || "hub"}`,
+            },
+        };
+    } catch (error) {
+        console.error("Error marking parcel arrived at hub:", error);
+        return {
+            success: false,
+            error: "Failed to mark parcel as arrived at hub",
+            details: error.message,
+        };
+    }
+};

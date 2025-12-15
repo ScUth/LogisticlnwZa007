@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Sidebar, { SidebarItem } from "@/components/driversidebar";
 import { Play, MapPin, Package, Truck } from "lucide-react";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
@@ -38,6 +39,13 @@ export default function CourierParcelCreatePage() {
   const [error, setError] = useState(null);
   const [item, setItem] = useState(null);
   const [parcels, setParcels] = useState([]);
+  const [subDistrictOptions] = useState([
+    "Lat Yao",
+    "Sena Nikhom",
+    "Chan Kasem",
+    "Chom Phon",
+    "Chatuchak",
+  ]);
 
   useEffect(() => {
     if (!itemId) return;
@@ -71,11 +79,17 @@ export default function CourierParcelCreatePage() {
         const quantity = Number(found.quantity || 1);
         const defaultSize = found.size || "small";
         const defaultWeight = found.estimated_weight || "";
+        const recipient = found.recipient || {};
 
         setParcels(
           Array.from({ length: quantity }, () => ({
             weight_grams: defaultWeight,
             size: defaultSize,
+            recipient_first_name: recipient.first_name || "",
+            recipient_last_name: recipient.last_name || "",
+            recipient_phone: recipient.phone || "",
+            recipient_address_text: recipient.address_text || "",
+            recipient_sub_district: recipient.sub_district || "",
           }))
         );
       } catch (err) {
@@ -108,6 +122,13 @@ export default function CourierParcelCreatePage() {
         parcels: parcels.map((p) => ({
           weight_grams: Number(p.weight_grams),
           size: p.size,
+          recipient: {
+            first_name: p.recipient_first_name,
+            last_name: p.recipient_last_name,
+            phone: p.recipient_phone,
+            address_text: p.recipient_address_text,
+            sub_district: p.recipient_sub_district,
+          },
         })),
       };
 
@@ -213,43 +234,140 @@ export default function CourierParcelCreatePage() {
                   <div className="text-sm font-semibold mb-3">
                     Parcels to create ({parcels.length})
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {parcels.map((p, idx) => (
                       <div
                         key={idx}
-                        className="flex flex-col md:flex-row md:items-end gap-3 border-b pb-3 last:border-b-0 last:pb-0"
+                        className="border-b pb-4 last:border-b-0 last:pb-0 space-y-3"
                       >
-                        <div className="flex-1">
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Weight (grams)
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            step="1"
-                            required
-                            className="w-full border rounded px-2 py-1 text-sm"
-                            value={p.weight_grams}
-                            onChange={(e) =>
-                              handleChangeParcel(idx, "weight_grams", e.target.value)
-                            }
-                          />
+                        <div className="text-xs font-semibold text-gray-500">
+                          Parcel #{idx + 1}
                         </div>
-                        <div className="w-full md:w-40">
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Size
-                          </label>
-                          <select
-                            className="w-full border rounded px-2 py-1 text-sm"
-                            value={p.size}
-                            onChange={(e) =>
-                              handleChangeParcel(idx, "size", e.target.value)
-                            }
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Recipient first name
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              className="w-full border rounded px-2 py-1 text-sm"
+                              value={p.recipient_first_name}
+                              onChange={(e) =>
+                                handleChangeParcel(idx, "recipient_first_name", e.target.value)
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Recipient last name
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              className="w-full border rounded px-2 py-1 text-sm"
+                              value={p.recipient_last_name}
+                              onChange={(e) =>
+                                handleChangeParcel(idx, "recipient_last_name", e.target.value)
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Recipient phone
+                            </label>
+                            <input
+                              type="tel"
+                              required
+                              className="w-full border rounded px-2 py-1 text-sm"
+                              value={p.recipient_phone}
+                              onChange={(e) =>
+                                handleChangeParcel(idx, "recipient_phone", e.target.value)
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Sub-district
+                            </label>
+                            <Select
+                              value={p.recipient_sub_district}
+                              onValueChange={(value) =>
+                                handleChangeParcel(idx, "recipient_sub_district", value)
+                              }
+                            >
+                              <SelectTrigger className="w-full border rounded px-2 py-1 text-sm">
+                                <SelectValue placeholder="Select sub-district" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {subDistrictOptions.map((district) => (
+                                  <SelectItem key={district} value={district} className="px-8">
+                                    {district}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Address
+                            </label>
+                            <textarea
+                              required
+                              className="w-full border rounded px-2 py-1 text-sm min-h-[60px]"
+                              value={p.recipient_address_text}
+                              onChange={(e) =>
+                                handleChangeParcel(idx, "recipient_address_text", e.target.value)
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row md:items-end gap-3 mt-2">
+                          <div className="flex-1">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Weight (grams)
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              step="1"
+                              required
+                              className="w-full border rounded px-2 py-1 text-sm"
+                              value={p.weight_grams}
+                              onChange={(e) =>
+                                handleChangeParcel(idx, "weight_grams", e.target.value)
+                              }
+                            />
+                          </div>
+                          <div className="w-full md:w-40">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Size
+                            </label>
+                            <select
+                              className="w-full border rounded px-2 py-1 text-sm"
+                              value={p.size}
+                              onChange={(e) =>
+                                handleChangeParcel(idx, "size", e.target.value)
+                              }
+                            >
+                              <option value="small">Small</option>
+                              <option value="medium">Medium</option>
+                              <option value="large">Large</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-3">
+                          <button
+                            type="button"
+                            className="px-3 py-1.5 rounded-md text-xs border border-red-300 text-red-700 bg-white hover:bg-red-50"
+                            onClick={() => {
+                              setParcels((prev) => prev.filter((_, i) => i !== idx));
+                            }}
                           >
-                            <option value="small">Small</option>
-                            <option value="medium">Medium</option>
-                            <option value="large">Large</option>
-                          </select>
+                            Cancel this pickup
+                          </button>
                         </div>
                       </div>
                     ))}

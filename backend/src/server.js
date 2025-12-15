@@ -10,6 +10,7 @@ import pickupRequestItemRoutes from "./routes/pickupRequestItemRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import employeeRoutes from "./routes/employeeRoutes.js";
 import courierRoutes from "./routes/courierRoutes.js";
+import trackRoutes from "./routes/trackRoutes.js";
 import InitializeDatabaseStructures from "./seed/seed.js";
 
 dotenv.config();
@@ -31,7 +32,7 @@ app.use(cookieParser());
 const RETRY_MS = 30000;
 let db_status = false;
 
-const RESET_SEED_DATA = process.env.RESET_SEED_DATA === "true" || true;
+const RESET_SEED_DATA = process.env.RESET_SEED_DATA === "true" || false;
 
 // basic test route
 app.get("/api/health", (req, res) => {
@@ -57,6 +58,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/employee", employeeRoutes);
 // Courier routes
 app.use("/api/courier", courierRoutes);
+
+// Public tracking routes
+app.use("/api/track", trackRoutes);
 
 // connect DB + start
 const PORT = process.env.PORT || 4826;

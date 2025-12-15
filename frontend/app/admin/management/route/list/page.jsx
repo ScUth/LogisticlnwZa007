@@ -1,6 +1,6 @@
 "use client"
 
-import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, Search, SquarePlus, Truck, User, Warehouse } from "lucide-react"
+import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, Search, SquarePlus, Truck, User, Warehouse, Users } from "lucide-react"
 import React from "react"
 import RouteCreate from "@/components/RouteCreate"
 import Sidebar, { SidebarItem, SubSidebarItem } from "@/components/AdminSidebar"
@@ -10,13 +10,36 @@ export default function hubManagement() {
     const router = useRouter()
     const [openCreate, setOpenCreate] = React.useState(false)
 
-    const [route, setRoute] = React.useState([
-        { route_id: 'R001', courier_id: 'C001', hub_id: 'H001', start_time: '2025-12-10 08:00:00', end_time: '2025-12-10 16:00:00', status: 'planned' },
-        { route_id: 'R002', courier_id: 'C002', hub_id: 'H002', start_time: '2025-12-11 08:00:00', end_time: '2025-12-11 16:00:00', status: 'out_for_delivery' },
-        { route_id: 'R003', courier_id: 'C003', hub_id: 'H003', start_time: '2025-12-12 08:00:00', end_time: '2025-12-12 16:00:00', status: 'out_for_delivery' },
-        { route_id: 'R004', courier_id: 'C004', hub_id: 'H004', start_time: '2025-12-13 08:00:00', end_time: '2025-12-13 16:00:00', status: 'completed' },
-        { route_id: 'R005', courier_id: 'C005', hub_id: 'H005', start_time: '2025-12-14 08:00:00', end_time: '2025-12-14 16:00:00', status: 'canceled' },
-    ])
+    const [route, setRoute] = React.useState([])
+    const [loading, setLoading] = React.useState(true)
+    const [error, setError] = React.useState(null)
+
+    React.useEffect(() => {
+        const load = async () => {
+            setLoading(true)
+            setError(null)
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862"}/api/admin/routes`, { credentials: 'include' })
+                if (!res.ok) throw new Error('Failed to fetch routes')
+                const data = await res.json()
+                const rows = (data.routes || []).map(r => ({
+                    route_id: r._id,
+                    courier_id: r.courier ? (r.courier.employee_id || `${r.courier.first_name || ''} ${r.courier.last_name || ''}`).trim() : '-',
+                    hub_id: r.hub ? (r.hub.hub_name || r.hub.name) : '-',
+                    start_time: r.route_date || '-',
+                    end_time: '-',
+                    status: r.status || '-'
+                }))
+                setRoute(rows)
+            } catch (err) {
+                console.error(err)
+                setError(err.message)
+            } finally {
+                setLoading(false)
+            }
+        }
+        load()
+    }, [])
 
     const addRoute = (newRoute) => {
         setRoute((prev) => [...prev, newRoute])
@@ -27,6 +50,7 @@ export default function hubManagement() {
             <Sidebar>
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')}/>
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')}/>
+                <SidebarItem icon={<Users />} text="Staff Management" onClick={() => router.push('/admin/management/staff/list')} />
                 <SidebarItem icon={<User />} text="Record" onClick={() => router.push('/admin/management/records')}/>
                 <SidebarItem icon={<Package />} text="Parcel Management" onClick={() => router.push('/admin/management/parcel')}/>
                 <SidebarItem icon={<BusFront />} text="Route Management" onClick={() => router.push('/admin/management/route')} />
@@ -87,8 +111,12 @@ export default function hubManagement() {
                                 </thead>
 
                                 <tbody>
-                                    {route.map(r => (
-                                        <tr className="">
+                                    {loading ? (
+                                        <tr><td colSpan={6} className="py-6 text-center text-gray-500">Loading…</td></tr>
+                                    ) : error ? (
+                                        <tr><td colSpan={6} className="py-6 text-center text-red-500">{error}</td></tr>
+                                    ) : route.map(r => (
+                                        <tr key={r.route_id} className="">
                                             <td className="px-2 py-1 text-left">{r.route_id}</td>
                                             <td className="px-2 py-1 text-left">{r.courier_id}</td>
                                             <td className="px-2 py-1 text-left">{r.hub_id}</td>

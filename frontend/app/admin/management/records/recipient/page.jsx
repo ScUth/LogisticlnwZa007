@@ -1,6 +1,6 @@
 "use client"
 
-import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, SquarePen, Truck, User, Warehouse } from "lucide-react"
+import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, SquarePen, Truck, User, Warehouse, Users } from "lucide-react"
 import SenderEdit from "@/components/SenderEdit"
 import Sidebar, { SubSidebarItem, SidebarItem } from "@/components/AdminSidebar"
 import React from "react"
@@ -52,6 +52,7 @@ export default function hubManagement() {
             <Sidebar>
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')} />
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')} />
+                <SidebarItem icon={<Users />} text="Staff Management" onClick={() => router.push('/admin/management/staff/list')} />
                 <SidebarItem icon={<User />} text="Record" active/>
                 <SubSidebarItem text="Sender" onClick={() => router.push('/admin/management/records/sender')} />
                 <SubSidebarItem text="Recipient" active/>

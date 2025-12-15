@@ -1,6 +1,6 @@
 "use client"
 
-import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, SquarePlus, Truck, User, Warehouse } from "lucide-react"
+import { Boxes, BusFront, Fullscreen, LayoutDashboard, Package, SquarePlus, Truck, User, Warehouse, Users } from "lucide-react"
 import Sidebar, { SidebarItem, SubSidebarItem } from "@/components/AdminSidebar"
 import { useRouter } from "next/navigation"
 import React, { useEffect, useState } from 'react'
@@ -61,6 +61,7 @@ export default function hubManagement() {
             <Sidebar>
                 <SidebarItem icon={<LayoutDashboard />} text="Dashboard" onClick={() => router.push('/admin/dashboard')}/>
                 <SidebarItem icon={<Warehouse />} text="Hub Management" onClick={() => router.push('/admin/management/hub')}/>
+                <SidebarItem icon={<Users />} text="Staff Management" onClick={() => router.push('/admin/management/staff/list')} />
                 <SidebarItem icon={<User />} text="Record" onClick={() => router.push('/admin/management/records')}/>
                 <SidebarItem icon={<Package />} text="Parcel Management" active/>
                 <SubSidebarItem text="Parcel List" active />
