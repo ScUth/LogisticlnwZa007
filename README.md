@@ -72,7 +72,8 @@
 │       │   ├── pickupRequestRoutes.js
 │       │   ├── podRoutes.js
 │       │   ├── routeRoutes.js
-│       │   └── scanRoutes.js
+│       │   ├── scanRoutes.js
+│       │   └── trackRoutes.js
 │       ├── seed
 │       │   └── seed.js
 │       ├── server.js
@@ -95,7 +96,7 @@
 │   │   │   │   └── shipment
 │   │   │   │       ├── layout.jsx
 │   │   │   │       ├── page.jsx
-│   │   │   │       └── step2
+│   │   │   │       └── requests
 │   │   │   │           └── page.jsx
 │   │   │   ├── aboutus
 │   │   │   │   └── page.jsx
@@ -145,7 +146,13 @@
 │   │   │   │   │   ├── list
 │   │   │   │   │   │   └── page.jsx
 │   │   │   │   │   └── page.jsx
-│   │   │   │   └── scan_event
+│   │   │   │   ├── scan_event
+│   │   │   │   │   └── page.jsx
+│   │   │   │   └── staff
+│   │   │   │       ├── detail
+│   │   │   │       │   └── page.jsx
+│   │   │   │       ├── list
+│   │   │   │       │   └── page.jsx
 │   │   │   │       └── page.jsx
 │   │   │   └── page.jsx
 │   │   ├── employee
@@ -156,14 +163,19 @@
 │   │   │   │   │   └── page.jsx
 │   │   │   │   ├── page.jsx
 │   │   │   │   ├── parcel
+│   │   │   │   │   ├── [itemId]
+│   │   │   │   │   │   └── page.jsx
 │   │   │   │   │   └── page.jsx
 │   │   │   │   ├── parcels
 │   │   │   │   │   └── page.jsx
 │   │   │   │   ├── pickup
-│   │   │   │   │   └── pickup.jsx
+│   │   │   │   │   └── page.jsx
 │   │   │   │   └── route
 │   │   │   │       └── page.jsx
 │   │   │   ├── hub
+│   │   │   │   ├── dashboard
+│   │   │   │   │   └── page.jsx
+│   │   │   │   └── page.jsx
 │   │   │   ├── layout.jsx
 │   │   │   ├── login
 │   │   │   │   └── page.jsx
@@ -226,7 +238,7 @@
 │   └── utils
 └── package-lock.json
 
-61 directories, 132 files
+66 directories, 139 files
 ```
 
 ## Quick Start (Development Mode)
