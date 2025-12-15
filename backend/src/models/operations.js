@@ -88,7 +88,11 @@ const PickupRequestItemSchema = new mongoose.Schema(
       enum: ["draft", "confirmed", "parcel_created", "canceled"],
       default: "draft",
     },
+    // Backward-compatible single parcel reference (first created parcel)
     parcel_id: { type: ObjectId, ref: "Parcel", default: null },
+    // When courier confirms and creates actual Parcel records,
+    // all created parcel IDs are stored here
+    parcel_ids: [{ type: ObjectId, ref: "Parcel" }],
     request_id: { type: ObjectId, ref: "PickupRequest", required: true },
   },
   { timestamps: {createdAt: "created_at", updatedAt: "updated_at"} }
@@ -131,7 +135,7 @@ const ParcelSchema = new mongoose.Schema(
         "at_origin_hub",
         "in_linehaul",
         "at_dest_hub",
-        " out_for_delivery",
+        "out_for_delivery",
         "delivered",
         "failed_delivery",
         "returned_to_sender",

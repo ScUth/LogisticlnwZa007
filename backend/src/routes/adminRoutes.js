@@ -22,7 +22,12 @@ import {
     getProofDetail,
     listHubs,
     createHub,
-    deleteHub
+    deleteHub,
+    listStaff,
+    getStaffDetails,
+    createStaff,
+    updateStaffActive,
+    updateStaff
 } from '../controllers/adminController.js';
 import { authAdmin } from '../middleware/auth.js';
 
@@ -77,6 +82,9 @@ router.get('/parcels/:id', authAdmin, getParcelByID);
 
 // GET /api/admin/hubs
 router.get('/hubs', authAdmin, listHubs);
+// GET /api/admin/hubs/:id
+import { getHubById } from '../controllers/adminController.js';
+router.get('/hubs/:id', authAdmin, getHubById);
 // POST /api/admin/hubs
 router.post('/hubs', authAdmin, createHub);
 // DELETE /api/admin/hubs/:id
@@ -104,6 +112,22 @@ router.get('/pods', authAdmin, listProofs);
 
 // GET /api/admin/pods/:id
 router.get('/pods/:id', authAdmin, getProofDetail);
+
+/*============= STAFF ==============*/
+// GET /api/admin/staff
+router.get('/staff', authAdmin, listStaff);
+
+// GET /api/admin/staff/:id
+router.get('/staff/:id', authAdmin, getStaffDetails);
+
+// POST /api/admin/staff
+router.post('/staff', authAdmin, createStaff);
+
+// PATCH /api/admin/staff/:id/active
+router.patch('/staff/:id/active', authAdmin, updateStaffActive);
+
+// PUT /api/admin/staff/:id
+router.put('/staff/:id', authAdmin, updateStaff);
 
 export default router;
 

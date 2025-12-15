@@ -28,7 +28,7 @@ export default function EmployeeLogin() {
                     router.push("/employee/manager");
                     break;
                 case "staff":
-                    router.push("/employee/staff");
+                    router.push("/employee/hub");
                     break;
                 default:
                     router.push("/employee/login");

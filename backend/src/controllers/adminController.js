@@ -241,7 +241,9 @@ export const listProofs = async (req, res) => {
 export const listHubs = async (req, res) => {
 	try {
 		const hubs = await Hub.find().sort({ hub_name: 1 }).lean();
-		return res.json({ hubs });
+		// Provide a `name` alias for clients that expect `hub.name`
+		const mapped = hubs.map(h => ({ ...h, name: h.hub_name }));
+		return res.json({ hubs: mapped });
 	} catch (err) {
 		console.error('List hubs error:', err);
 		return res.status(500).json({ message: 'Failed to fetch hubs', error: err.message });
@@ -268,6 +270,21 @@ export const listRoutes = async (req, res) => {
 	} catch (err) {
 		console.error('List routes error:', err);
 		return res.status(500).json({ message: 'Failed to fetch routes', error: err.message });
+	}
+};
+
+// GET /api/admin/hubs/:id - admin hub detail (keeps existing behavior)
+export const getHubById = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const hub = await Hub.findById(id).lean();
+		if (!hub) return res.status(404).json({ message: 'Hub not found' });
+		// include name alias for convenience
+		hub.name = hub.hub_name || hub.name;
+		return res.json({ hub });
+	} catch (err) {
+		console.error('Get hub by id error:', err);
+		return res.status(500).json({ message: 'Failed to fetch hub', error: err.message });
 	}
 };
 
@@ -780,6 +797,335 @@ export const getProofDetail = async (req, res) => {
     } catch (err) {
         console.error('Get proof detail error:', err);
         return res.status(500).json({ message: 'Failed to fetch proof details', error: err.message });
+    }
+};
+
+// ------------------------------------------------------------------- STAFF ------------------------------------------------------------------- //
+
+// GET /api/admin/staff
+export const listStaff = async (req, res) => {
+    try {
+        const { search, hub, role, active } = req.query;
+        const query = { role: { $in: ['manager', 'staff'] } }; // Only show managers and staff
+
+        if (search) {
+            const regex = new RegExp(search, 'i');
+            query.$or = [
+                { first_name: regex },
+                { last_name: regex },
+                { phone: regex },
+                { employee_id: regex }
+            ];
+        }
+
+        if (hub) {
+            query.current_hub = hub;
+        }
+
+        if (role) {
+            query.role = role;
+        }
+
+        if (active !== undefined) {
+            query.active = active === 'true';
+        }
+
+        const staff = await Employee.find(query)
+            .select('first_name last_name phone employee_id role active current_hub')
+            .populate('current_hub', 'hub_name address_text sub_district')
+            .sort({ role: 1, last_name: 1 })
+            .lean();
+
+        const mapped = staff.map(s => ({
+            ...s,
+            current_hub: s.current_hub ? { ...s.current_hub, name: s.current_hub.hub_name } : null
+        }));
+
+        return res.json({ 
+            success: true, 
+            staff: mapped
+        });
+    } catch (err) {
+        console.error('List staff error:', err);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Failed to fetch staff', 
+            error: err.message 
+        });
+    }
+};
+
+// GET /api/admin/staff/:id
+export const getStaffDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const staff = await Employee.findById(id)
+            .select('first_name last_name phone employee_id role active current_hub')
+            .populate('current_hub', 'hub_name address_text sub_district')
+            .lean();
+
+        if (!staff || !['manager', 'staff'].includes(staff.role)) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Staff member not found' 
+            });
+        }
+
+        // ensure name alias exists for frontend
+        if (staff.current_hub) staff.current_hub.name = staff.current_hub.hub_name || staff.current_hub.name;
+
+        // Get shift history/attendance (you'll need to implement this based on your system)
+        const today = new Date();
+        const lastWeek = new Date(today.setDate(today.getDate() - 7));
+        
+        // Get recent activities (scan events, etc.)
+        const recentActivities = await ParcelScanEvent.find({
+            hub_id: staff.current_hub?._id
+        })
+        .sort({ event_time: -1 })
+        .limit(10)
+        .populate('parcel_id', 'tracking_code')
+        .lean();
+
+        // Get parcels currently at hub
+        const parcelsAtHub = await Parcel.countDocuments({
+            status: 'at_origin_hub',
+            origin_hub_id: staff.current_hub?._id
+        });
+
+        // Get recent deliveries processed at hub
+        const recentHubDeliveries = await ParcelScanEvent.aggregate([
+            {
+                $match: {
+                    hub_id: staff.current_hub?._id,
+                    event_type: 'departed_hub',
+                    event_time: { $gte: lastWeek }
+                }
+            },
+            { $group: { _id: null, count: { $sum: 1 } } }
+        ]);
+
+        const metrics = {
+            parcelsAtHub: parcelsAtHub || 0,
+            recentDeliveries: recentHubDeliveries[0]?.count || 0,
+            activitiesCount: recentActivities.length || 0
+        };
+
+        return res.json({
+            success: true,
+            staff,
+            recentActivities,
+            metrics
+        });
+    } catch (err) {
+        console.error('Get staff details error:', err);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Failed to fetch staff details', 
+            error: err.message 
+        });
+    }
+};
+
+// POST /api/admin/staff
+export const createStaff = async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const {
+            first_name,
+            last_name,
+            phone,
+            password,
+            employee_id,
+            role,
+            current_hub,
+            active = true,
+        } = req.body;
+
+        /* ------------------ validation ------------------ */
+        if (!first_name || !last_name || !phone || !password || !employee_id || !role) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields",
+            });
+        }
+
+        if (!['manager', 'staff'].includes(role)) {
+            return res.status(400).json({
+                success: false,
+                message: "Role must be 'manager' or 'staff'",
+            });
+        }
+
+        /* -------- prevent duplicate phone / employee_id -------- */
+        const exists = await Employee.findOne({
+            $or: [{ phone }, { employee_id }],
+        });
+
+        if (exists) {
+            return res.status(409).json({
+                success: false,
+                message: "Employee with this phone or employee_id already exists",
+            });
+        }
+
+        /* ---------------- validate hub if provided ---------------- */
+        if (current_hub) {
+            const hubExists = await mongoose.model('Hub').findById(current_hub);
+            if (!hubExists) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Hub not found",
+                });
+            }
+        }
+
+        /* ---------------- password hashing ---------------- */
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        /* ---------------- create staff ---------------- */
+        const staff = await Employee.create({
+            first_name,
+            last_name,
+            phone,
+            password: hashedPassword,
+            employee_id,
+            role,
+            current_hub,
+            active,
+        });
+
+        await staff.populate('current_hub', 'name code');
+
+        /* -------- hide password in response -------- */
+        const staffResponse = staff.toObject();
+        delete staffResponse.password;
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(201).json({
+            success: true,
+            message: "Staff created successfully",
+            staff: staffResponse
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        
+        console.error("Create staff error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error",
+            error: error.message
+        });
+    }
+};
+
+// PATCH /api/admin/staff/:id/active
+export const updateStaffActive = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { active } = req.body;
+        
+        if (typeof active !== 'boolean') {
+            return res.status(400).json({ 
+                success: false,
+                message: 'active must be boolean' 
+            });
+        }
+        
+        const staff = await Employee.findByIdAndUpdate(
+            id, 
+            { active }, 
+            { new: true, runValidators: true }
+        )
+        .select('first_name last_name phone employee_id role active current_hub')
+        .populate('current_hub', 'name code');
+        
+        if (!staff) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'Staff not found' 
+            });
+        }
+
+        return res.json({ 
+            success: true,
+            staff 
+        });
+    } catch (err) {
+        console.error('Update staff active error:', err);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Failed to update staff', 
+            error: err.message 
+        });
+    }
+};
+
+// PUT /api/admin/staff/:id
+export const updateStaff = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+
+        // Remove password from updates if present
+        delete updates.password;
+
+        // Validate role if being updated
+        if (updates.role && !['manager', 'staff'].includes(updates.role)) {
+            return res.status(400).json({
+                success: false,
+                message: "Role must be 'manager' or 'staff'",
+            });
+        }
+
+        // Validate hub if being updated
+        if (updates.current_hub) {
+            const hubExists = await mongoose.model('Hub').findById(updates.current_hub);
+            if (!hubExists) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Hub not found",
+                });
+            }
+        }
+
+        const staff = await Employee.findByIdAndUpdate(
+            id,
+            { $set: updates },
+            { 
+                new: true, 
+                runValidators: true 
+            }
+        )
+        .select('first_name last_name phone employee_id role active current_hub')
+        .populate('current_hub', 'name code');
+
+        if (!staff) {
+            return res.status(404).json({
+                success: false,
+                message: 'Staff not found'
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: 'Staff updated successfully',
+            staff
+        });
+    } catch (error) {
+        console.error('Update staff error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to update staff',
+            error: error.message
+        });
     }
 };
 

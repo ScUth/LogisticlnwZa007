@@ -230,8 +230,15 @@ export const submitPickupRequest = async (req, res) => {
     if (items.length === 0) {
       return res.status(400).json({ message: 'Cannot submit a pickup request with no items' });
     }
+    // lock items and mark them as ready for courier pickup
+    await PickupRequestItem.updateMany(
+      { request_id: requestId, status: 'draft' },
+      { $set: { status: 'confirmed' } }
+    );
+
     pickupRequest.status = 'pending';
     await pickupRequest.save();
+
     res.status(200).json({ message: 'Pickup request submitted', pickupRequest });
   } catch (error) {
     res.status(500).json({ message: 'Error submitting pickup request', error: error.message });

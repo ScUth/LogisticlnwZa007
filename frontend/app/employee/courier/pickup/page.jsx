@@ -46,11 +46,18 @@ export default function PickupPage() {
             setLoading(true);
             setError(null);
             try {
+                if (typeof window !== "undefined") {
+                    console.debug("[PickupPage] API_BASE_URL", API_BASE_URL);
+                }
                 // 1) Tasks already assigned to this courier
                 const { res: parcelsRes, data: parcelsData } = await fetchJson(
                     `${API_BASE_URL}/api/courier/parcels`,
                     { credentials: "include" }
                 );
+
+                if (typeof window !== "undefined") {
+                    console.debug("[PickupPage] parcels response", parcelsRes.status, parcelsData);
+                }
 
                 if (!parcelsRes.ok || !parcelsData.success) {
                     throw new Error(parcelsData.error || parcelsData.message || "Failed to load assigned parcels");
@@ -68,8 +75,18 @@ export default function PickupPage() {
                 if (!vehiclesRes.ok || vehiclesData.success === false) {
                     throw new Error(vehiclesData.error || vehiclesData.message || "Failed to load vehicles");
                 }
+                const vehiclesArray = Array.isArray(vehiclesData.data)
+                    ? vehiclesData.data
+                    : Array.isArray(vehiclesData.data?.vehicles)
+                        ? vehiclesData.data.vehicles
+                        : [];
 
-                setVehicles(vehiclesData.data || []);
+                if (typeof window !== "undefined") {
+                    console.debug("[PickupPage] vehicles response", vehiclesRes.status, vehiclesData);
+                    console.debug("[PickupPage] vehicles parsed", vehiclesArray);
+                }
+
+                setVehicles(vehiclesArray);
 
                 // 3) Available (unassigned) pickup requests
                 const { res: availableRes, data: availableData } = await fetchJson(
@@ -83,6 +100,9 @@ export default function PickupPage() {
 
                 setAvailableRequests(availableData.data?.requests || []);
             } catch (err) {
+                if (typeof window !== "undefined") {
+                    console.error("[PickupPage] fetchAllData error", err);
+                }
                 setError(err.message || "Error loading pickup data");
             } finally {
                 setLoading(false);
@@ -98,6 +118,9 @@ export default function PickupPage() {
         setAcceptingId(requestId);
         setError(null);
         try {
+            if (typeof window !== "undefined") {
+                console.debug("[PickupPage] accepting pickup", { requestId, selectedVehicleId });
+            }
             const { res, data } = await fetchJson(
                 `${API_BASE_URL}/api/courier/pickup-requests/${requestId}/accept`,
                 {
@@ -132,6 +155,9 @@ export default function PickupPage() {
                 setAvailableRequests(availableData.data?.requests || []);
             }
         } catch (err) {
+            if (typeof window !== "undefined") {
+                console.error("[PickupPage] accept pickup error", err);
+            }
             setError(err.message || "Error accepting pickup request");
         } finally {
             setAcceptingId(null);
@@ -365,47 +391,61 @@ export default function PickupPage() {
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {pickupItems.map((item) => (
-                                <div
-                                    key={item._id}
-                                    className="border rounded-md p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
-                                >
-                                    <div>
-                                        {item.recipient && (
-                                            <div className="font-medium text-gray-800">
-                                                {item.recipient.first_name} {" "}
-                                                {item.recipient.last_name}
-                                            </div>
-                                        )}
-                                        {item.recipient?.address_text && (
-                                            <div className="text-sm text-gray-600 truncate max-w-[320px]">
-                                                {item.recipient.address_text}
-                                            </div>
-                                        )}
-                                        {item.recipient?.sub_district && (
-                                            <div className="text-xs text-gray-500">
-                                                {item.recipient.sub_district}
-                                            </div>
-                                        )}
-                                    </div>
+                            {pickupItems.map((item) => {
+                                const pickupItemId = item.pickup_request_item || item._id;
 
-                                    <div className="flex flex-wrap gap-3 text-sm text-gray-700">
-                                        <div className="px-2 py-1 rounded-full bg-amber-50 text-amber-700">
-                                            Size: <span className="font-semibold">{item.size}</span>
+                                return (
+                                    <div
+                                        key={item._id}
+                                        className="border rounded-md p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                                    >
+                                        <div>
+                                            {item.recipient && (
+                                                <div className="font-medium text-gray-800">
+                                                    {item.recipient.first_name} {" "}
+                                                    {item.recipient.last_name}
+                                                </div>
+                                            )}
+                                            {item.recipient?.address_text && (
+                                                <div className="text-sm text-gray-600 truncate max-w-[320px]">
+                                                    {item.recipient.address_text}
+                                                </div>
+                                            )}
+                                            {item.recipient?.sub_district && (
+                                                <div className="text-xs text-gray-500">
+                                                    {item.recipient.sub_district}
+                                                </div>
+                                            )}
                                         </div>
-                                        {item.quantity != null && (
-                                            <div className="px-2 py-1 rounded-full bg-gray-100">
-                                                Qty: <span className="font-semibold">{item.quantity}</span>
+
+                                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
+                                            <div className="px-2 py-1 rounded-full bg-amber-50 text-amber-700">
+                                                Size: <span className="font-semibold">{item.size}</span>
                                             </div>
-                                        )}
-                                        {item.estimated_weight != null && (
-                                            <div className="px-2 py-1 rounded-full bg-gray-100">
-                                                Est. weight: {item.estimated_weight} g
-                                            </div>
-                                        )}
+                                            {item.quantity != null && (
+                                                <div className="px-2 py-1 rounded-full bg-gray-100">
+                                                    Qty: <span className="font-semibold">{item.quantity}</span>
+                                                </div>
+                                            )}
+                                            {item.estimated_weight != null && (
+                                                <div className="px-2 py-1 rounded-full bg-gray-100">
+                                                    Est. weight: {item.estimated_weight} g
+                                                </div>
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    router.push(`/employee/courier/parcel/${pickupItemId}`)
+                                                }
+                                                className="ml-auto inline-flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700"
+                                            >
+                                                Create parcels
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </section>

@@ -111,4 +111,24 @@ router.get('/pickups', async (req, res) => {
     }
 });
 
+// GET /api/employee/hubs/:id - fetch hub details for employee UI
+import { getHubById as adminGetHubById } from '../controllers/adminController.js';
+router.get('/hubs/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        // Reuse admin controller helper to fetch hub by id and return same shape
+        const fakeReq = { params: { id } };
+        const fakeRes = {
+            status: (code) => ({ json: (obj) => res.status(code).json(obj) }),
+            json: (obj) => res.json(obj)
+        };
+        // call directly
+        return adminGetHubById(fakeReq, fakeRes);
+    } catch (err) {
+        console.error('/api/employee/hubs/:id', err);
+        res.status(500).json({ success: false, error: 'Server error', details: err.message });
+    }
+});
+
+
 export default router;

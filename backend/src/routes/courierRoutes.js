@@ -5,6 +5,7 @@ import {
     getParcelDetails,
     getAvailablePickupRequests,
     acceptPickupRequestForCourier,
+    confirmPickupItemParcels,
 } from "../controllers/courierController.js";
 import { PickupRequest, Vehicle } from "../models/operations.js";
 import { authenticate, authorizeCourier } from "../middleware/auth.js";
@@ -130,10 +131,16 @@ router.get("/vehicles", async (req, res) => {
     try {
         const courierId = req.user.id;
 
+        // Return vehicles that are:
+        //  - already assigned to this courier, OR
+        //  - currently unassigned (assigned_courier is null or not set)
+        // This avoids missing valid vehicles due to strict owner filters
+        // or differences in how "null" is stored in the DB.
         const vehicles = await Vehicle.find({
             $or: [
                 { assigned_courier: courierId },
-                { assigned_courier: null, owner: "Company" },
+                { assigned_courier: null },
+                { assigned_courier: { $exists: false } },
             ],
         }).sort({ vehicle_type: 1, capacity_kg: 1 });
 
@@ -213,6 +220,34 @@ router.post("/pickup-requests/:requestId/accept", async (req, res) => {
         res.json(result);
     } catch (error) {
         console.error("Error in /api/courier/pickup-requests/:requestId/accept:", error);
+        res.status(500).json({
+            success: false,
+            error: "Server error",
+            details: error.message,
+        });
+    }
+});
+
+/**
+ * @route   POST /api/courier/pickup-items/:itemId/confirm-parcels
+ * @desc    Courier confirms a pickup request item into concrete parcels
+ * @access  Private (Courier only)
+ */
+router.post("/pickup-items/:itemId/confirm-parcels", async (req, res) => {
+    try {
+        const courierId = req.user.id;
+        const { itemId } = req.params;
+        const parcels = req.body?.parcels || [];
+
+        const result = await confirmPickupItemParcels(courierId, itemId, parcels);
+
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error("Error in /api/courier/pickup-items/:itemId/confirm-parcels:", error);
         res.status(500).json({
             success: false,
             error: "Server error",

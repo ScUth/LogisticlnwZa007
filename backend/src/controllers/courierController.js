@@ -9,6 +9,8 @@ import {
     ParcelScanEvent,
     ProofOfDelivery,
 } from "../models/operations.js";
+import { Sender } from "../models/people.js";
+import { Hub } from "../models/location.js";
 
 /**
  * Get all parcels assigned to a courier (for pickup and delivery)
@@ -494,10 +496,12 @@ export const acceptPickupRequestForCourier = async (courierId, requestId, vehicl
             };
         }
 
-        // Vehicle must either already be assigned to this courier or be unassigned company vehicle
+        // Vehicle must either already be assigned to this courier or be unassigned.
+        // Use string comparison to avoid errors if assigned_courier is stored as
+        // a plain ObjectId or string.
         if (
             vehicle.assigned_courier &&
-            !vehicle.assigned_courier.equals(courierId)
+            vehicle.assigned_courier.toString() !== courierId.toString()
         ) {
             return {
                 success: false,
@@ -527,6 +531,150 @@ export const acceptPickupRequestForCourier = async (courierId, requestId, vehicl
         return {
             success: false,
             error: "Failed to accept pickup request",
+            details: error.message,
+        };
+    }
+};
+
+/**
+ * Courier confirms a pickup request item by creating concrete Parcel records.
+ * - One PickupRequestItem with quantity N fans out to N Parcel documents.
+ * - Only the assigned courier can perform this action.
+ * - After creation, the item status becomes "parcel_created" and parcel_ids is filled.
+ */
+export const confirmPickupItemParcels = async (courierId, itemId, parcelsPayload = []) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(itemId)) {
+            return { success: false, error: "Invalid item id" };
+        }
+
+        const item = await PickupRequestItem.findById(itemId).populate("request_id");
+
+        if (!item) {
+            return { success: false, error: "Pickup request item not found" };
+        }
+
+        const request = item.request_id;
+        if (!request) {
+            return { success: false, error: "Parent pickup request not found" };
+        }
+
+        // Only the courier assigned to this request can confirm
+        if (!request.assigned_courier || request.assigned_courier.toString() !== courierId.toString()) {
+            return { success: false, error: "You are not assigned to this pickup request" };
+        }
+
+        if (!Array.isArray(parcelsPayload) || parcelsPayload.length === 0) {
+            return { success: false, error: "Parcels payload is required" };
+        }
+
+        // Enforce 1 parcel per requested quantity unit
+        if (parcelsPayload.length !== item.quantity) {
+            return {
+                success: false,
+                error: `Expected ${item.quantity} parcels but received ${parcelsPayload.length}`,
+            };
+        }
+
+        // Load sender to populate Parcel.sender block
+        const sender = await Sender.findById(request.requester).lean();
+        if (!sender) {
+            return { success: false, error: "Sender for this pickup request not found" };
+        }
+
+        // Choose default hubs if none are provided in payload.
+        // For now, use the first active hub as both origin and destination
+        // when origin_hub_id / dest_hub_id are omitted. This keeps the
+        // frontend simpler while still satisfying Parcel schema requirements.
+        const defaultHub = await Hub.findOne({ active: true }).lean();
+        if (!defaultHub) {
+            return {
+                success: false,
+                error: "No active hubs configured in the system",
+            };
+        }
+
+        const createdParcels = [];
+
+        for (let i = 0; i < parcelsPayload.length; i++) {
+            const p = parcelsPayload[i] || {};
+
+            // weight is required and must be positive
+            const weight = Number(p.weight_grams);
+            if (!Number.isFinite(weight) || weight <= 0) {
+                return {
+                    success: false,
+                    error: "Each parcel must include a valid positive weight_grams",
+                };
+            }
+
+            const size = (p.size || item.size || "").toLowerCase();
+            if (!size || !["small", "medium", "large"].includes(size)) {
+                return { success: false, error: "Parcel size must be small, medium, or large" };
+            }
+
+            // Basic tracking code generation: use request_code + item index + parcel index
+            const baseCode = request.request_code || request._id.toString().slice(-8).toUpperCase();
+            const tracking_code = `${baseCode}-${item._id.toString().slice(-4).toUpperCase()}-${i + 1}`;
+
+            const originHubId = p.origin_hub_id && mongoose.Types.ObjectId.isValid(p.origin_hub_id)
+                ? p.origin_hub_id
+                : defaultHub._id;
+            const destHubId = p.dest_hub_id && mongoose.Types.ObjectId.isValid(p.dest_hub_id)
+                ? p.dest_hub_id
+                : defaultHub._id;
+
+            const parcel = await Parcel.create({
+                tracking_code,
+                sender: {
+                    first_name: sender.first_name,
+                    last_name: sender.last_name,
+                    phone: sender.phone,
+                },
+                pickup_location: {
+                    address_text: request.pickup_location.address_text,
+                    sub_district: request.pickup_location.sub_district,
+                },
+                recipient: {
+                    first_name: item.recipient.first_name,
+                    last_name: item.recipient.last_name,
+                    phone: item.recipient.phone,
+                    address_text: item.recipient.address_text,
+                    sub_district: item.recipient.sub_district,
+                },
+                origin_hub_id: originHubId,
+                dest_hub_id: destHubId,
+                weight_grams: weight,
+                declared_value: Number(p.declared_value) || undefined,
+            });
+
+            createdParcels.push(parcel);
+        }
+
+        item.status = "parcel_created";
+        // keep single parcel_id for backward compatibility with existing queries
+        item.parcel_id = createdParcels[0]?._id || null;
+        item.parcel_ids = createdParcels.map((pc) => pc._id);
+        await item.save();
+
+        // Optionally, mark request as in_progress once any item has parcels
+        if (request.status === "assigned") {
+            request.status = "in_progress";
+            await request.save();
+        }
+
+        return {
+            success: true,
+            data: {
+                item,
+                parcels: createdParcels,
+            },
+        };
+    } catch (error) {
+        console.error("Error confirming pickup item parcels:", error);
+        return {
+            success: false,
+            error: "Failed to confirm pickup item parcels",
             details: error.message,
         };
     }
