@@ -2,18 +2,57 @@
 
 import Sidebar, { SidebarItem } from "@/components/driversidebar"
 import { useRouter } from "next/navigation"
-import { Play, CheckSquare, MapPin, Package, Truck, CheckCircle } from "lucide-react"
-import React from "react"
+import { Play, CheckSquare, MapPin, Package, Truck } from "lucide-react"
+import React, { useEffect } from "react"
+import { useEmployeeAuth } from "@/context/employeeAuthContext"
+
+const API_BASE_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862"
 
 export default function Courier() {
     const router = useRouter()
+
+    const { employee } = useEmployeeAuth()
+    useEffect(() => {
+        if (!employee) {
+            router.push("/employee/login")
+        }
+    }, [employee, router])
+
+        useEffect(() => {
+            const fetchAcceptedRequests = async () => {
+                if (!employee) return
+                setAcceptedLoading(true)
+                setAcceptedError(null)
+                try {
+                    const res = await fetch(`${API_BASE_URL}/api/courier/pickup-requests`, {
+                        credentials: "include",
+                    })
+                    const data = await res.json()
+
+                    if (!res.ok || data.success === false) {
+                        throw new Error(data.error || data.message || "Failed to load accepted requests")
+                    }
+
+                    const active = (data.data || []).filter((r) =>
+                        ["assigned", "in_progress"].includes(r.status)
+                    )
+                    setAcceptedRequests(active)
+                } catch (err) {
+                    setAcceptedError(err.message || "Error loading accepted requests")
+                } finally {
+                    setAcceptedLoading(false)
+                }
+            }
+
+            fetchAcceptedRequests()
+        }, [employee])
+
     const [routeStarted, setRouteStarted] = React.useState(false)
     const [parcelsCount, setParcelsCount] = React.useState(18)
-    const [pickups, setPickups] = React.useState([
-        { id: 'PU001', sender: 'Alice', address: '123 Main St', status: 'Pending' },
-        { id: 'PU002', sender: 'Tom', address: '77 Market St', status: 'Pending' },
-        { id: 'PU003', sender: 'Susan', address: '10 Oak Ave', status: 'Collected' },
-    ])
+    const [acceptedRequests, setAcceptedRequests] = React.useState([])
+    const [acceptedLoading, setAcceptedLoading] = React.useState(false)
+    const [acceptedError, setAcceptedError] = React.useState(null)
     const [deliveries, setDeliveries] = React.useState([
         { id: 'DL001', recipient: 'Bob', address: '456 Elm St', status: 'Pending' },
         { id: 'DL002', recipient: 'Maria', address: '9 Pine Rd', status: 'Pending' },
@@ -37,10 +76,6 @@ export default function Courier() {
         setRouteStarted(false)
         // example: mark some parcels delivered
         setParcelsCount((c) => Math.max(0, c - Math.floor(Math.random() * 5)))
-    }
-
-    const markCollected = (id) => {
-        setPickups((prev) => prev.map(p => p.id === id ? { ...p, status: 'Collected' } : p))
     }
 
     const markDelivered = (id) => {
@@ -125,31 +160,49 @@ export default function Courier() {
                                     <Package className="text-amber-600" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold">Pickups (tmp)</h3>
-                                    <div className="text-sm text-gray-500">Incoming parcels from senders to hub</div>
+                                                                        <h3 className="text-lg font-semibold">Accepted pickup requests</h3>
+                                                                        <div className="text-sm text-gray-500">Requests you've already accepted from senders</div>
                                 </div>
                             </div>
-                            <div className="text-sm text-gray-600">Pending: {pickups.filter(p => p.status === 'Pending').length}</div>
+                                                        <div className="text-sm text-gray-600">
+                                                                Active: {acceptedRequests.length}
+                                                        </div>
                         </div>
-
-                        <ul className="mt-4 space-y-2">
-                            {pickups.slice(0, 4).map(p => (
-                                <li key={p.id} className="flex items-center justify-between p-2 border rounded">
-                                    <div>
-                                        <div className="font-medium">{p.id} — {p.sender}</div>
-                                        <div className="text-xs text-gray-500">{p.address}</div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{p.status}</span>
-                                        <button onClick={() => markCollected(p.id)} disabled={p.status !== 'Pending'} className="text-sm px-2 py-1 rounded bg-amber-600 text-white disabled:bg-gray-200">Collect</button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-
-                        <div className="mt-4 text-right">
-                            <button onClick={() => router.push('/employee/courier/pickups')} className="text-sm text-blue-600 hover:underline">View All</button>
-                        </div>
+                                                <div className="mt-4">
+                                                        {acceptedLoading ? (
+                                                            <div className="text-sm text-gray-400">Loading accepted requests...</div>
+                                                        ) : acceptedError ? (
+                                                            <div className="text-sm text-red-500">{acceptedError}</div>
+                                                        ) : acceptedRequests.length === 0 ? (
+                                                            <div className="text-sm text-gray-500">You have no accepted pickup requests yet.</div>
+                                                        ) : (
+                                                            <ul className="space-y-2">
+                                                                {acceptedRequests.slice(0, 4).map((r) => (
+                                                                    <li key={r._id} className="flex items-center justify-between p-2 border rounded">
+                                                                        <div>
+                                                                            <div className="font-medium text-sm">
+                                                                                {r.request_code || r._id}
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-500">
+                                                                                {r.requester?.first_name} {" "}
+                                                                                {r.requester?.last_name}
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-500 truncate max-w-[220px]">
+                                                                                {r.pickup_location?.address_text}
+                                                                            </div>
+                                                                        </div>
+                                                                        <span className={`text-xs px-2 py-1 rounded-full ${
+                                                                            r.status === 'assigned'
+                                                                                ? 'bg-blue-100 text-blue-800'
+                                                                                : 'bg-green-100 text-green-800'
+                                                                        }`}>
+                                                                            {r.status === 'assigned' ? 'Assigned' : 'In progress'}
+                                                                        </span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                </div>
                     </div>
 
                     <div className="bg-white rounded-lg shadow p-4">

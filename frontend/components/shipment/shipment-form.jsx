@@ -15,6 +15,7 @@ export function ShipmentForm({
   onSubmitShipmentDraft, 
   shipmentDraftData, 
   setShipmentDraftData,
+  isEditing,
 }) {
 
   // default anatomy
@@ -172,38 +173,67 @@ export function ShipmentForm({
         <h2 className="text-lg font-bold text-gray-600 mb-4">
           Package Information
         </h2>
-        <div className="flex flex-wrap gap-4 mb-6">
-          {packageSizesWithDesc.map(({ size, desc }) => (
+        <div className="flex flex-col gap-4 mb-6">
+          {/* First row: Small (full width) */}
+          <div
+            className={`w-full p-2 border rounded-md text-center cursor-pointer
+              ${
+                shipmentDraftData.size === "small"
+                  ? "border-amber-500 bg-orange-100"
+                  : "border-gray-300"
+              }`}
+            onClick={() =>
+              setShipmentDraftData((prev) => ({
+                ...prev,
+                size: "small",
+              }))
+            }
+          >
+            <h3 className="text-md font-medium mb-2">Small</h3>
+            <p className="text-sm text-gray-600">&lt; 14 x 20 x 6 cm</p>
+          </div>
+          
+          {/* Second row: Medium and Large */}
+          <div className="flex gap-4">
             <div
-              key={size}
-              className={`flex-1 min-w-[150px] p-2 border rounded-md text-center cursor-pointer
+              className={`flex-1 p-2 border rounded-md text-center cursor-pointer
                 ${
-                  shipmentDraftData.size === size.toLowerCase()
+                  shipmentDraftData.size === "medium"
                     ? "border-amber-500 bg-orange-100"
                     : "border-gray-300"
-                }
-                ${
-                  size === "Small"
-                    ? "order-1 basis-full lg:basis-auto lg:order-none" // mobile: full width + first
-                    : size === "Medium"
-                    ? "order-2 lg:order-none" // mobile: second
-                    : "order-3 lg:order-none" // mobile: third
                 }`}
               onClick={() =>
                 setShipmentDraftData((prev) => ({
                   ...prev,
-                  size: size.toLowerCase(),
+                  size: "medium",
                 }))
               }
             >
-              <h3 className="text-md font-medium mb-2">{size}</h3>
-              <p className="text-sm text-gray-600">{desc}</p>
+              <h3 className="text-md font-medium mb-2">Medium</h3>
+              <p className="text-sm text-gray-600">&lt; 40 x 45 x 26 cm</p>
             </div>
-          ))}
+            <div
+              className={`flex-[1] p-2 border rounded-md text-center cursor-pointer
+                ${
+                  shipmentDraftData.size === "large"
+                    ? "border-amber-500 bg-orange-100"
+                    : "border-gray-300"
+                }`}
+              onClick={() =>
+                setShipmentDraftData((prev) => ({
+                  ...prev,
+                  size: "large",
+                }))
+              }
+            >
+              <h3 className="text-md font-medium mb-2">Large</h3>
+              <p className="text-sm text-gray-600">&gt; 150 x 200 x 150 cm</p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-row flex-wrap gap-4 mb-6">
-          <div className="flex-1 min-w-[250px]">
+        <div className="flex flex-row flex-wrap gap-4 mb-6 justify-center">
+          <div className="">
             <label className="mb-2 text-sm font-medium text-gray-700">
               Estimated Weight (grams)
             </label>
@@ -228,7 +258,7 @@ export function ShipmentForm({
                 name="estimatedWeight"
                 value={shipmentDraftData.estimatedWeight}
                 onChange={handleChange}
-                className="flex-1 p-2 border border-gray-300 rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="flex-1 max-w-[108px] text-center p-2 border border-gray-300 rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 min={0}
                 required
               />
@@ -247,7 +277,7 @@ export function ShipmentForm({
               </button>
             </div>
           </div>
-          <div className="flex-1 min-w-[200px]">
+          <div className="">
             <label className="mb-2 text-sm font-medium text-gray-700">
               Quantity
             </label>
@@ -272,7 +302,7 @@ export function ShipmentForm({
                 name="quantity"
                 value={shipmentDraftData.quantity}
                 onChange={handleChange}
-                className="flex-1 p-2 border border-gray-300 rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="flex-1 max-w-[64px] text-center p-2 border border-gray-300 rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 min={1}
                 required
               />
@@ -305,7 +335,7 @@ export function ShipmentForm({
             type="submit"
             className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md"
           >
-            Create Shipment
+            {isEditing ? "Submit Edit" : "Create Shipment"}
           </button>
         </div>
       </form>
