@@ -31,7 +31,7 @@
 
 ## Project Structure
 `tree -I "node_modules"`
-```text
+```sql
 .
 ├── README.md
 ├── backend
@@ -44,11 +44,14 @@
 │       │   ├── env.js
 │       │   └── logger.js
 │       ├── controllers
+│       │   ├── adminController.js
 │       │   ├── authController.js
+│       │   ├── courierController.js
 │       │   ├── employeeController.js
 │       │   ├── hubController.js
 │       │   ├── locationController.js
 │       │   ├── parcelController.js
+│       │   ├── pickupRequestController.js
 │       │   └── scanController.js
 │       ├── middleware
 │       │   ├── auth.js
@@ -58,11 +61,15 @@
 │       │   ├── operations.js
 │       │   └── people.js
 │       ├── routes
+│       │   ├── adminRoutes.js
 │       │   ├── authRoutes.js
 │       │   ├── courierRoutes.js
+│       │   ├── employeeRoutes.js
 │       │   ├── hubRoutes.js
 │       │   ├── locationRoutes.js
 │       │   ├── parcelRoutes.js
+│       │   ├── pickupRequestItemRoutes.js
+│       │   ├── pickupRequestRoutes.js
 │       │   ├── podRoutes.js
 │       │   ├── routeRoutes.js
 │       │   └── scanRoutes.js
@@ -86,6 +93,7 @@
 │   │   │   │   ├── login
 │   │   │   │   │   └── page.jsx
 │   │   │   │   └── shipment
+│   │   │   │       ├── layout.jsx
 │   │   │   │       ├── page.jsx
 │   │   │   │       └── step2
 │   │   │   │           └── page.jsx
@@ -114,6 +122,10 @@
 │   │   │   │   │   └── page.jsx
 │   │   │   │   ├── page.jsx
 │   │   │   │   ├── parcel
+│   │   │   │   │   ├── details
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   ├── list
+│   │   │   │   │   │   └── page.jsx
 │   │   │   │   │   └── page.jsx
 │   │   │   │   ├── pod
 │   │   │   │   │   ├── detail
@@ -121,11 +133,19 @@
 │   │   │   │   │   ├── list
 │   │   │   │   │   │   └── page.jsx
 │   │   │   │   │   └── page.jsx
+│   │   │   │   ├── records
+│   │   │   │   │   ├── page.jsx
+│   │   │   │   │   ├── recipient
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   └── sender
+│   │   │   │   │       └── page.jsx
 │   │   │   │   ├── route
+│   │   │   │   │   ├── details
+│   │   │   │   │   │   └── page.jsx
+│   │   │   │   │   ├── list
+│   │   │   │   │   │   └── page.jsx
 │   │   │   │   │   └── page.jsx
-│   │   │   │   ├── scan_event
-│   │   │   │   │   └── page.jsx
-│   │   │   │   └── sender_n_recipient_records
+│   │   │   │   └── scan_event
 │   │   │   │       └── page.jsx
 │   │   │   └── page.jsx
 │   │   ├── employee
@@ -143,17 +163,27 @@
 │   │   │   │   │   └── pickup.jsx
 │   │   │   │   └── route
 │   │   │   │       └── page.jsx
+│   │   │   ├── hub
 │   │   │   ├── layout.jsx
-│   │   │   └── login
-│   │   │       └── page.jsx
+│   │   │   ├── login
+│   │   │   │   └── page.jsx
+│   │   │   └── page.jsx
 │   │   ├── globals.css
 │   │   ├── layout.jsx
 │   │   └── test
 │   │       └── page.jsx
 │   ├── components
 │   │   ├── AdminSidebar.jsx
+│   │   ├── CourierForm.jsx
+│   │   ├── CreateHub.jsx
+│   │   ├── DisableNumberScroll.jsx
 │   │   ├── DriverHeader.jsx
+│   │   ├── EditHub.jsx
 │   │   ├── PublicNav.jsx
+│   │   ├── RecipientEdit.jsx
+│   │   ├── RouteCreate.jsx
+│   │   ├── ScanEventsCreate.jsx
+│   │   ├── SenderEdit.jsx
 │   │   ├── driversidebar.jsx
 │   │   ├── img
 │   │   │   ├── Caveman-SpongeBob.jpg
@@ -166,6 +196,9 @@
 │   │   │   ├── create-location-dialog.jsx
 │   │   │   └── list-pickup-location-dialog.jsx
 │   │   ├── navbar.jsx
+│   │   ├── shipment
+│   │   │   ├── cart.jsx
+│   │   │   └── shipment-form.jsx
 │   │   └── ui
 │   │       ├── checkbox.jsx
 │   │       ├── dialog.jsx
@@ -183,6 +216,7 @@
 │   │   ├── auth.js
 │   │   ├── helpers.js
 │   │   ├── use-location.js
+│   │   ├── use-pickup-request.js
 │   │   └── utils.js
 │   ├── middleware.js
 │   ├── package-lock.json
@@ -192,7 +226,7 @@
 │   └── utils
 └── package-lock.json
 
-53 directories, 106 files
+61 directories, 132 files
 ```
 
 ## Quick Start (Development Mode)
