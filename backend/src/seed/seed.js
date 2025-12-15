@@ -119,11 +119,41 @@ async function InitializeDatabaseStructures() {
             ])
         }
 
-        console.log("Seed data inserted successfully");
-    } catch (error) {
-        console.error("Error seeding database:", error.message);
-        throw error;
+        const HubExist = await mongoose.connection.db.collection("hubs").findOne({ hub_name: { $in: ["Chomphon Express Center", "Chan Kasem Drop-off", "Lat Yao Distribution Point", "Sena Nikhom Hub"] } });
+        if (!HubExist) {
+            await mongoose.connection.db.collection("hubs").insertMany([
+                {
+                    hub_name: "Chomphon Express Center",
+                    address_text: "102/3 Phahonyothin Road Soi 18",
+                    sub_district: "Chomphon", // Chomphon
+                    active: true
+                },
+                {
+                    hub_name: "Chan Kasem Drop-off",
+                    address_text: "32/1 Ratchadaphisek Road",
+                    sub_district: "Chan Kasem", // Chan Kasem
+                    active: true
+                },
+                {
+                    hub_name: "Lat Yao Distribution Point",
+                    address_text: "88 Ngamwongwan Road",
+                    sub_district: "Lat Yao", // Lat Yao
+                    active: true
+                },
+                {
+                    hub_name: "Sena Nikhom Hub",
+                    address_text: "15 Prasert-Manukitch Road",
+                    sub_district: "Sena Nikhom", // Sena Nikhom
+                    active: true
+                }
+            ])
+        }
+
+            console.log("Seed data inserted successfully");
+        } catch (error) {
+            console.error("Error seeding database:", error.message);
+            throw error;
+        }
     }
-}
 
 export default InitializeDatabaseStructures;

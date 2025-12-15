@@ -3,29 +3,22 @@
 import Sidebar, { SidebarItem } from "@/components/driversidebar"
 import { useRouter } from "next/navigation"
 import { Play, CheckSquare, MapPin, Package, Truck, CheckCircle } from "lucide-react"
-import React from "react"
+import React, { useEffect, useState } from "react"
+import { useEmployeeAuth } from "@/context/employeeAuthContext"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://kumtho.trueddns.com:33862";
 
 export default function Courier() {
     const router = useRouter()
-    const [routeStarted, setRouteStarted] = React.useState(false)
-    const [parcelsCount, setParcelsCount] = React.useState(18)
-    const [pickups, setPickups] = React.useState([
-        { id: 'PU001', sender: 'Alice', address: '123 Main St', status: 'Pending' },
-        { id: 'PU002', sender: 'Tom', address: '77 Market St', status: 'Pending' },
-        { id: 'PU003', sender: 'Susan', address: '10 Oak Ave', status: 'Collected' },
-    ])
-    const [deliveries, setDeliveries] = React.useState([
-        { id: 'DL001', recipient: 'Bob', address: '456 Elm St', status: 'Pending' },
-        { id: 'DL002', recipient: 'Maria', address: '9 Pine Rd', status: 'Pending' },
-        { id: 'DL003', recipient: 'Sam', address: '2 Birch Ln', status: 'Delivered' },
-    ])
-
-    const todaysRoute = {
-        id: 123,
-        name: "Zone A - Morning Route",
-        stops: 12,
-        estimatedTimeMins: 90,
-    }
+    const { employee } = useEmployeeAuth();
+    const [routeStarted, setRouteStarted] = useState(false)
+    const [parcelsCount, setParcelsCount] = useState(0)
+    const [pickups, setPickups] = useState([])
+    const [deliveries, setDeliveries] = useState([])
+    const [todaysRoute, setTodaysRoute] = useState(null)
+    const [openRoutes, setOpenRoutes] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
 
     const startRoute = () => {
         setRouteStarted(true)
@@ -39,8 +32,64 @@ export default function Courier() {
         setParcelsCount((c) => Math.max(0, c - Math.floor(Math.random() * 5)))
     }
 
+    const fetchDashboard = async () => {
+        if (!employee) return;
+        setLoading(true);
+        setError(null);
+        try {
+            // today's route and parcels
+            const r1 = await fetch(`${API_BASE_URL}/api/employee/route/today`, { credentials: 'include' });
+            const routeData = r1.ok ? await r1.json() : null;
+            if (routeData?.data?.route) {
+                setTodaysRoute(routeData.data.route);
+                setDeliveries(routeData.data.parcels || []);
+                setRouteStarted(routeData.data.route.status === 'out_for_delivery');
+            } else {
+                setTodaysRoute(null);
+                setDeliveries([]);
+            }
+
+            // pickups
+            const r2 = await fetch(`${API_BASE_URL}/api/employee/pickups`, { credentials: 'include' });
+            const pickupsData = r2.ok ? await r2.json() : null;
+            setPickups(pickupsData?.data?.pickups || []);
+
+            // count parcels assigned
+            const r3 = await fetch(`${API_BASE_URL}/api/employee/parcels`, { credentials: 'include' });
+            const parcelsData = r3.ok ? await r3.json() : null;
+            setParcelsCount(parcelsData?.data?.stats?.total || 0);
+
+            // open routes
+            const r4 = await fetch(`${API_BASE_URL}/api/employee/routes/open`, { credentials: 'include' });
+            const openData = r4.ok ? await r4.json() : null;
+            setOpenRoutes(openData?.data?.routes || []);
+        } catch (err) {
+            console.error(err);
+            setError('Failed to load dashboard data');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        if (employee) fetchDashboard();
+    }, [employee]);
+
+    const acceptRoute = async (routeId) => {
+        if (!confirm('Accept this route?')) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/employee/routes/${routeId}/accept`, { method: 'POST', credentials: 'include' });
+            if (!res.ok) throw new Error(await res.text());
+            await fetchDashboard();
+            alert('Route accepted');
+        } catch (err) {
+            console.error(err);
+            alert('Failed to accept route');
+        }
+    }
+
     const markCollected = (id) => {
-        setPickups((prev) => prev.map(p => p.id === id ? { ...p, status: 'Collected' } : p))
+        setPickups((prev) => prev.map(p => (p._id === id || p.id === id) ? { ...p, status: 'Collected' } : p))
     }
 
     const markDelivered = (id) => {
@@ -66,14 +115,49 @@ export default function Courier() {
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Open routes available to accept */}
+                    <section className="col-span-1 md:col-span-3 bg-white rounded-lg shadow p-4 mb-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-semibold">Available Routes</h3>
+                                <div className="text-sm text-gray-500">Routes without assigned courier</div>
+                            </div>
+                        </div>
+                        <div className="mt-4">
+                            {loading && <div className="text-sm text-gray-500">Loading routes...</div>}
+                            {!loading && openRoutes.length === 0 && <div className="text-sm text-gray-500">No open routes</div>}
+                            <ul className="mt-3 space-y-2">
+                                {openRoutes.map(r => (
+                                    <li key={r._id} className="flex items-center justify-between p-2 border rounded">
+                                        <div>
+                                            <div className="font-medium">{r.hub_id?.name || 'Unknown Hub'}</div>
+                                            <div className="text-xs text-gray-500">{new Date(r.route_date).toLocaleString()}</div>
+                                        </div>
+                                        <div>
+                                            <button onClick={() => acceptRoute(r._id)} className="px-3 py-1 rounded bg-amber-600 text-white">Accept</button>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </section>
                     {/* Route Card */}
                     <section className="col-span-1 md:col-span-2 bg-white rounded-lg shadow p-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <MapPin className="text-amber-600" />
                                 <div>
-                                    <h2 className="text-lg font-semibold">{todaysRoute.name}</h2>
-                                    <div className="text-sm text-gray-500">Stops: {todaysRoute.stops} • Est. time: {todaysRoute.estimatedTimeMins} mins</div>
+                                    {todaysRoute ? (
+                                        <>
+                                            <h2 className="text-lg font-semibold">Route to {todaysRoute.hub_id?.name || 'Hub'}</h2>
+                                            <div className="text-sm text-gray-500">Stops: {deliveries.length} • Date: {new Date(todaysRoute.route_date).toLocaleDateString()}</div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <h2 className="text-lg font-semibold">No route for today</h2>
+                                            <div className="text-sm text-gray-500">You have no route scheduled for today</div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
@@ -108,9 +192,9 @@ export default function Courier() {
                         <div className="bg-white rounded-lg shadow p-4">
                             <h4 className="text-sm font-semibold">Route Details</h4>
                             <ul className="mt-2 text-sm text-gray-600 space-y-1">
-                                <li>Driver: John Doe</li>
+                                <li>Driver: {employee ? `${employee.first_name} ${employee.last_name}` : '—'}</li>
                                 <li>Vehicle: V-124</li>
-                                <li>Stops: {todaysRoute.stops}</li>
+                                <li>Stops: {deliveries.length}</li>
                             </ul>
                         </div>
                     </aside>
@@ -134,14 +218,14 @@ export default function Courier() {
 
                         <ul className="mt-4 space-y-2">
                             {pickups.slice(0, 4).map(p => (
-                                <li key={p.id} className="flex items-center justify-between p-2 border rounded">
+                                <li key={p._id} className="flex items-center justify-between p-2 border rounded">
                                     <div>
-                                        <div className="font-medium">{p.id} — {p.sender}</div>
-                                        <div className="text-xs text-gray-500">{p.address}</div>
+                                        <div className="font-medium">{p._id} — {p.requester?.first_name} {p.requester?.last_name}</div>
+                                        <div className="text-xs text-gray-500">{p.pickup_location?.address_text || p.requester?.phone}</div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{p.status}</span>
-                                        <button onClick={() => markCollected(p.id)} disabled={p.status !== 'Pending'} className="text-sm px-2 py-1 rounded bg-amber-600 text-white disabled:bg-gray-200">Collect</button>
+                                        <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'assigned' || p.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{p.status}</span>
+                                        <button onClick={() => markCollected(p._id)} disabled={p.status !== 'assigned'} className="text-sm px-2 py-1 rounded bg-amber-600 text-white disabled:bg-gray-200">Collect</button>
                                     </div>
                                 </li>
                             ))}
@@ -168,14 +252,14 @@ export default function Courier() {
 
                         <ul className="mt-4 space-y-2">
                             {deliveries.slice(0, 4).map(d => (
-                                <li key={d.id} className="flex items-center justify-between p-2 border rounded">
+                                <li key={d._id} className="flex items-center justify-between p-2 border rounded">
                                     <div>
-                                        <div className="font-medium">{d.id} — {d.recipient}</div>
-                                        <div className="text-xs text-gray-500">{d.address}</div>
+                                        <div className="font-medium">{d.tracking_code} — {d.recipient?.first_name} {d.recipient?.last_name}</div>
+                                        <div className="text-xs text-gray-500">{d.recipient?.address_text}</div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className={`text-xs px-2 py-1 rounded-full ${d.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{d.status}</span>
-                                        <button onClick={() => markDelivered(d.id)} disabled={d.status !== 'Pending'} className="text-sm px-2 py-1 rounded bg-green-600 text-white disabled:bg-gray-200">Deliver</button>
+                                        <span className={`text-xs px-2 py-1 rounded-full ${d.status === 'at_dest_hub' || d.status === 'out_for_delivery' ? 'bg-yellow-100 text-yellow-800' : d.status === 'delivered' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>{d.status}</span>
+                                        <button onClick={() => router.push('/employee/courier/parcel')} className="text-sm px-2 py-1 rounded bg-green-600 text-white">Open</button>
                                     </div>
                                 </li>
                             ))}

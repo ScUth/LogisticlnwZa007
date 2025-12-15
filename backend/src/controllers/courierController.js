@@ -7,6 +7,7 @@ import {
     ParcelRouteAssignment,
     Vehicle,
     ParcelScanEvent,
+    ProofOfDelivery,
 } from "../models/operations.js";
 
 /**
@@ -161,7 +162,9 @@ export const getTodaysRouteParcels = async (courierId, date = null) => {
                 $lt: new Date(targetDate.getTime() + 24 * 60 * 60 * 1000),
             },
             status: { $in: ["planned", "out_for_delivery"] },
-        });
+        }).populate('hub_id', 'hub_name address_text').lean();
+
+        if (route && route.hub_id) route.hub_id.name = route.hub_id.hub_name;
 
         if (!route) {
             return {
@@ -214,6 +217,64 @@ export const getTodaysRouteParcels = async (courierId, date = null) => {
 };
 
 /**
+ * Get open routes (no courier assigned)
+ */
+export const getOpenRoutes = async () => {
+    try {
+        const routes = await Route.find({ courier_id: null, status: { $in: ['planned'] } })
+            .populate('hub_id', 'hub_name address_text')
+            .sort({ route_date: 1 })
+            .lean();
+
+        // alias hub_name -> name to keep frontend usage unchanged
+        const routesWithName = routes.map(r => ({
+            ...r,
+            hub_id: r.hub_id ? { ...r.hub_id, name: r.hub_id.hub_name } : null,
+        }));
+
+        return { success: true, data: { routes: routesWithName } };
+    } catch (error) {
+        console.error('Error getting open routes:', error);
+        return { success: false, error: 'Failed to fetch open routes', details: error.message };
+    }
+};
+
+/**
+ * Courier accepts a route (set courier_id if not set)
+ */
+export const acceptRoute = async (routeId, courierId) => {
+    try {
+        const route = await Route.findById(routeId);
+        if (!route) return { success: false, error: 'Route not found' };
+        if (route.courier_id) return { success: false, error: 'Route already assigned' };
+
+        route.courier_id = courierId;
+        await route.save();
+
+        return { success: true, data: { route } };
+    } catch (error) {
+        console.error('Error accepting route:', error);
+        return { success: false, error: 'Failed to accept route', details: error.message };
+    }
+};
+
+/**
+ * Get pickup requests assigned to courier (for employee view)
+ */
+export const getAssignedPickups = async (courierId) => {
+    try {
+        const pickups = await PickupRequest.find({ assigned_courier: courierId })
+            .populate('requester', 'first_name last_name phone')
+            .sort({ updated_at: -1 })
+            .lean();
+        return { success: true, data: { pickups } };
+    } catch (error) {
+        console.error('Error getting assigned pickups:', error);
+        return { success: false, error: 'Failed to fetch pickups', details: error.message };
+    }
+};
+
+/**
  * Get parcel details with tracking history
  * @param {ObjectId} parcelId - Parcel ID
  * @param {ObjectId} courierId - Courier ID (for authorization check)
@@ -232,8 +293,8 @@ export const getParcelDetails = async (parcelId, courierId) => {
         }
 
         const parcel = await Parcel.findById(parcelId)
-            .populate("origin_hub_id", "name address_text")
-            .populate("dest_hub_id", "name address_text");
+            .populate("origin_hub_id", "hub_name address_text")
+            .populate("dest_hub_id", "hub_name address_text");
 
         if (!parcel) {
             return {
@@ -244,15 +305,26 @@ export const getParcelDetails = async (parcelId, courierId) => {
 
         // Get tracking history
         const trackingHistory = await ParcelScanEvent.find({ parcel_id: parcelId })
-            .populate("hub_id", "name")
+            .populate("hub_id", "hub_name")
             .populate("courier_id", "first_name last_name")
-            .sort({ event_time: 1 });
+            .sort({ event_time: 1 })
+            .lean();
+
+        // alias hub_name -> name on tracking events
+        const trackingHistoryWithName = trackingHistory.map(e => ({
+            ...e,
+            hub_id: e.hub_id ? { ...e.hub_id, name: e.hub_id.hub_name } : null,
+        }));
+
+        // also alias origin/dest hub names for frontend convenience
+        if (parcel.origin_hub_id) parcel.origin_hub_id.name = parcel.origin_hub_id.hub_name;
+        if (parcel.dest_hub_id) parcel.dest_hub_id.name = parcel.dest_hub_id.hub_name;
 
         return {
             success: true,
             data: {
                 parcel,
-                trackingHistory,
+                trackingHistory: trackingHistoryWithName,
                 nextActions: getAvailableActions(parcel.status),
             },
         };
@@ -263,6 +335,58 @@ export const getParcelDetails = async (parcelId, courierId) => {
             error: "Failed to fetch parcel details",
             details: error.message,
         };
+    }
+};
+
+/**
+ * Mark a parcel as delivered by courier
+ */
+export const deliverParcel = async (parcelId, courierId, { recipient_name, notes, signature_url, photo_url } = {}) => {
+    try {
+        const hasAccess = await checkCourierAccessToParcel(parcelId, courierId);
+        if (!hasAccess) return { success: false, error: 'Unauthorized access to this parcel' };
+
+        const parcel = await Parcel.findById(parcelId);
+        if (!parcel) return { success: false, error: 'Parcel not found' };
+
+        parcel.status = 'delivered';
+        parcel.delivered_at = new Date();
+        await parcel.save();
+
+        // create ParcelScanEvent
+        await ParcelScanEvent.create({ parcel_id: parcel._id, courier_id: courierId, event_type: 'delivered', event_time: new Date(), notes });
+
+        // create ProofOfDelivery record
+        await ProofOfDelivery.create({ parcel_id: parcel._id, courier_id: courierId, recipient_name: recipient_name || '', signed_at: new Date(), signature_url, photo_url, notes });
+
+        return { success: true, data: { parcel } };
+    } catch (error) {
+        console.error('Error delivering parcel:', error);
+        return { success: false, error: 'Failed to mark parcel as delivered', details: error.message };
+    }
+};
+
+/**
+ * Mark a parcel as failed delivery
+ */
+export const failParcel = async (parcelId, courierId, { reason } = {}) => {
+    try {
+        const hasAccess = await checkCourierAccessToParcel(parcelId, courierId);
+        if (!hasAccess) return { success: false, error: 'Unauthorized access to this parcel' };
+
+        const parcel = await Parcel.findById(parcelId);
+        if (!parcel) return { success: false, error: 'Parcel not found' };
+
+        parcel.status = 'failed_delivery';
+        await parcel.save();
+
+        // create ParcelScanEvent
+        await ParcelScanEvent.create({ parcel_id: parcel._id, courier_id: courierId, event_type: 'failed_delivery', event_time: new Date(), notes: reason });
+
+        return { success: true, data: { parcel } };
+    } catch (error) {
+        console.error('Error marking parcel failed:', error);
+        return { success: false, error: 'Failed to mark parcel as failed', details: error.message };
     }
 };
 

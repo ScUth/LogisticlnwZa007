@@ -122,7 +122,7 @@ ParcelSchema.index({ status: 1, sla_due_at: 1 });
 /*========== ROUTE ==========*/
 const RouteSchema = new mongoose.Schema(
   {
-    courier_id: { type: ObjectId, ref: "Employee", required: true },
+    courier_id: { type: ObjectId, ref: "Employee", default: null },
     hub_id: { type: ObjectId, ref: "Hub", required: true },
 
     route_date: { type: Date, required: true },

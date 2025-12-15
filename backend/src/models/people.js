@@ -37,6 +37,7 @@ const EmployeeSchema = new mongoose.Schema(
     employee_id: { type: String, required: true, unique: true },
     role: { type: String, enum: ['manager', 'staff', 'courier'], required: true },
     active: { type: Boolean, default: true },
+    current_hub: { type: ObjectId, ref: "Hub" },
   },
   { timestamps: true }
 );
